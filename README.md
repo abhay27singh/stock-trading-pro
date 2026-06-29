@@ -1,254 +1,188 @@
-# Stock Trading Platform V2
+# 📈 StockTrading Pro
 
-A full-stack Indian stock market trading platform with real-time price updates, portfolio management, candlestick charts, and AI-powered price predictions using numerical methods.
+A full-stack **stock & options trading simulator** built as a **loosely-coupled microservices** system, with **real Indian market data (NSE)**, live WebSocket prices, and an **options desk priced with Black-Scholes, Binomial Tree and Monte Carlo**.
 
-## Tech Stack
+> Paper-trading / educational project — uses **virtual money**. No real funds are involved.
+
+---
+
+## ✨ Features
+
+- **Real NSE market data** via `yfinance` (live spot prices + intraday/historical candles)
+- **Live price updates** over **WebSocket** (no page refresh)
+- **Stock trading** — buy/sell with a virtual ₹1,00,000 wallet, portfolio & P&L
+- **Options desk** — Call/Put pricing via **3 methods that cross-validate each other**:
+  - Black-Scholes (closed-form) · Binomial Tree (CRR) · Monte Carlo
+  - The **Greeks** (Δ Γ Θ ν ρ), historical volatility, and **payoff diagrams**
+- **Admin dashboard** — manage users (bulk delete), add NSE stocks, view platform stats
+- **Microservices architecture** — API Gateway + 4 services, **database-per-service**, OAuth2 JWT, inter-service calls
+- **Centralized logging** with request **correlation IDs** to trace a request across all services
+- **Professional dark "trading terminal" UI** (React + MUI + Framer Motion)
+
+---
+
+## 🏗️ Architecture
+
+```
+                         React Frontend (3002)
+                                  │  REST
+                                  ▼
+                        API Gateway (8090)  ── Spring Cloud Gateway
+        ┌──────────────┬──────────────────────┬───────────────────────┐
+        ▼              ▼                      ▼                       ▼
+  Auth/User (8082)  Market-Data (8081)   Trading (8084)        (routes by path)
+   → auth_db         → market_db           → trading_db
+   identity+wallet   stocks/prices/        portfolio/orders/
+                     options pricing       watchlist/options
+        │                  │                    │
+        │                  ▼                    │ (inter-service calls:
+        │           Python service (5001)       │  Trading → Market-Data for price,
+        │           yfinance + Black-Scholes     │  Trading → Auth for wallet)
+        └──────────── WebSocket (live prices) ───┘
+```
+
+Each service **owns its own database** — the textbook definition of loose coupling.
+
+---
+
+## 🧰 Tech Stack
 
 | Layer | Technology |
-|-------|-----------|
-| Frontend | React.js 19, Material UI |
-| Backend | Spring Boot 3.5 (Java 17+), REST API, WebSocket |
-| Prediction | Python 3 (Flask), Numerical Methods |
-| Database | MySQL 8 |
-| Auth | JWT (HS384) |
-| Real-time | WebSocket + STOMP |
+|---|---|
+| Frontend | React 19, Material UI, Framer Motion, lightweight-charts |
+| API Gateway | Spring Cloud Gateway |
+| Backend services | Spring Boot 3.5, Java 21, Spring Security (OAuth2 Resource Server / JWT) |
+| Quant / data service | Python 3, Flask, yfinance, NumPy |
+| Databases | MySQL 8 (one schema per service) |
+| Auth | JWT (HS256), shared-secret service-to-service key |
+
+## 🔌 Ports
+
+| Service | Port | Database |
+|---|---|---|
+| Frontend (React) | `3002` | — |
+| API Gateway | `8090` | — |
+| Auth / User | `8082` | `auth_db` |
+| Market-Data | `8081` | `market_db` |
+| Trading | `8084` | `trading_db` |
+| Python (data + options) | `5001` | — |
 
 ---
 
-## Features
+## ✅ Prerequisites
 
-- User registration and login with JWT authentication
-- Real-time stock price updates every 3 seconds
-- Candlestick charts with zoom/pan (zoom persists across updates)
-- Buy/sell stocks with virtual portfolio (starting balance ₹1,00,000)
-- Portfolio analytics (P&L, balance, holdings)
-- Watchlist management
-- Admin dashboard (manage users, stocks, trades)
-- AI price prediction using 5 numerical methods
+- **Java 21** (e.g. `brew install openjdk@21`)
+- **Node.js 18+** and npm
+- **Python 3.9+**
+- **MySQL 8** running locally (default user `root` / password `***REDACTED***`, or set your own — see below)
+- **Maven** (or use the bundled `./mvnw` wrapper in each service)
 
 ---
 
-## Numerical Methods (Prediction Service)
-
-| Method | Purpose |
-|--------|---------|
-| Newton's Divided Difference | Polynomial interpolation for next price |
-| Simpson's Rule | Numerical integration for trend strength |
-| Runge-Kutta (RK4) | ODE-based 5-day price forecast |
-| Newton-Raphson | Root finding for breakeven price |
-| Gauss Elimination | Linear regression for price direction |
-
----
-
-## Project Structure
-
-```
-StockTradingV2/
-├── backend/          # Spring Boot REST API  → port 9090
-├── frontend/         # React.js UI           → port 3001
-├── python/           # Flask prediction API  → port 5001
-└── .env              # Secrets (never commit this)
-```
-
----
-
-## Prerequisites
-
-| Tool | Version | Download |
-|------|---------|----------|
-| Java | 17+ | https://adoptium.net |
-| Maven | 3.9+ | bundled via `mvnw` |
-| Node.js | 18+ | https://nodejs.org |
-| Python | 3.8+ | https://python.org |
-| MySQL | 8+ | https://dev.mysql.com/downloads |
-
----
-
-## Setup Instructions
-
-### Step 1 — Clone the repo
+## 🚀 Quick Start (one command)
 
 ```bash
-git clone https://github.com/abhay27singh/stock-trading.git
-cd stock-trading
+# 1. clone
+git clone https://github.com/abhay27singh/stock-trading-pro.git
+cd stock-trading-pro
+
+# 2. one-time: create the Python virtualenv
+cd python && python3 -m venv venv && ./venv/bin/pip install -r requirements.txt && cd ..
+
+# 3. start EVERYTHING (Python, Auth, Market-Data, Trading, Gateway, Frontend)
+./start-all.sh
 ```
 
-### Step 2 — Create the `.env` file
+Then open **http://localhost:3002**.
 
-Copy the example and fill in your values:
+To stop everything:
+```bash
+./stop-all.sh
+```
+
+> The databases (`auth_db`, `market_db`, `trading_db`) are created automatically on first run.
+> Register a new account in the app to start trading. To make a user an admin:
+> `mysql -uroot -p***REDACTED*** auth_db -e "UPDATE users SET role='ADMIN' WHERE email='you@example.com';"` (then log out & back in).
+
+### Custom DB credentials
+The services read these env vars (defaults shown): `DB_USERNAME=root`, `DB_PASSWORD=***REDACTED***`, `JWT_SECRET`, `INTERNAL_API_KEY`. Set them before `./start-all.sh` if your MySQL differs.
+
+---
+
+## ▶️ Running services individually (optional)
 
 ```bash
-cp .env.example .env
+# Python
+cd python && ./venv/bin/python prediction_service.py
+
+# Each Spring service (Java 21)
+cd services/auth-user-service && ./mvnw spring-boot:run
+cd backend                    && ./mvnw spring-boot:run   # Market-Data
+cd services/trading-service   && ./mvnw spring-boot:run
+cd services/gateway           && ./mvnw spring-boot:run
+
+# Frontend
+cd frontend && npm install && npm start
 ```
 
-Open `.env` and set:
+---
 
-```env
-DB_URL=jdbc:mysql://localhost:3306/stocktrading_v2?useSSL=false&serverTimezone=Asia/Kolkata&allowPublicKeyRetrieval=true&createDatabaseIfNotExist=true
-DB_USERNAME=root           # your MySQL username
-DB_PASSWORD=***REDACTED***        # your MySQL password
+## 📁 Project Structure
 
-JWT_SECRET=your_secret_key_minimum_32_characters_long
-JWT_EXPIRATION=86400000
-
-ALPHAVANTAGE_API_KEY=demo
-ALPHAVANTAGE_BASE_URL=https://www.alphavantage.co/query
-
-CORS_ALLOWED_ORIGINS=http://localhost:3001
+```
+stock-trading-pro/
+├── frontend/                 # React app (UI)
+├── backend/                  # Market-Data service (stocks, prices, options pricing proxy)
+├── services/
+│   ├── gateway/              # API Gateway (single entry point, routing, CORS, request logging)
+│   ├── auth-user-service/    # Auth, users, wallet
+│   └── trading-service/      # Portfolio, orders, watchlist, options positions
+├── python/                   # Flask: yfinance data + options/prediction engines
+│   ├── market_data.py            # live quotes + history (yfinance)
+│   ├── options_pricing.py        # Black-Scholes / Binomial / Monte Carlo / Greeks
+│   └── prediction_service.py     # Flask endpoints
+├── start-all.sh / stop-all.sh    # run/stop the whole stack
+└── logs/                     # per-service logs (created at runtime)
 ```
 
-> The database `stocktrading_v2` is created automatically on first boot if it doesn't exist.
+---
 
-### Step 3 — Start MySQL
+## 🧮 The Quant Engine (options pricing)
 
-Make sure MySQL is running locally on port `3306`. On Mac:
-```bash
-brew services start mysql
-```
-On Windows/Linux — start via MySQL Workbench or system service.
+All pricing methods live in **`python/options_pricing.py`**, each clearly commented:
 
-### Step 4 — Start the Backend (Spring Boot)
+| Method | Function | Role |
+|---|---|---|
+| Black-Scholes | `black_scholes()` | Primary closed-form pricer |
+| Binomial Tree (CRR) | `binomial_tree()` | Numerical cross-check |
+| Monte Carlo | `monte_carlo()` | Statistical cross-check |
+| The Greeks | `greeks()` | Δ Γ Θ ν ρ sensitivities |
+| Historical volatility | `historical_volatility()` | σ from log-returns |
 
-```bash
-cd backend
-./mvnw spring-boot:run      # Mac/Linux
-mvnw.cmd spring-boot:run    # Windows
-```
+All three methods converge to the same price (validated against textbook values + put-call parity).
 
-Wait for:
-```
-Started BackendApplication in X seconds
-```
+---
 
-Runs on: **http://localhost:9090**
+## 🔍 Logging & Debugging
 
-**IntelliJ IDEA shortcut:**
-1. Open the `backend/` folder in IntelliJ
-2. Enable annotation processing: Settings → Build → Compiler → Annotation Processors → ✅ Enable
-3. Open `BackendApplication.java` → click the green ▶ button
-4. Add `.env` file path under Run Configuration → Environment Variables
-
-### Step 5 — Start the Frontend (React)
-
-```bash
-cd frontend
-npm install        # first time only
-npm start
-```
-
-Runs on: **http://localhost:3001** (opens in browser automatically)
-
-**VS Code shortcut:** Open `frontend/` folder → Terminal → `npm start`
-
-### Step 6 — Start the Python Prediction Service
+Every service logs to the `logs/` folder. Each request gets a **correlation ID** (`X-Request-Id`) propagated by the gateway, so you can trace one request across all services:
 
 ```bash
-cd python
-python3 -m venv venv              # first time only
-source venv/bin/activate          # Mac/Linux
-venv\Scripts\activate             # Windows
-pip install -r requirements.txt   # first time only
-python prediction_service.py
+tail -f logs/*.log              # watch everything live
+grep "<request-id>" logs/*.log  # trace one request end-to-end
 ```
 
-Runs on: **http://localhost:5001**
+---
+
+## 🗺️ Roadmap / Future Work
+
+- Public deployment (Docker + cloud) — *currently runs locally*
+- Automated tests + CI/CD
+- Real payment gateway integration (currently a demo/sandbox UI)
+- WebSocket-pushed options Greeks
 
 ---
 
-## Default Admin Account
+## 📝 Note
 
-After first run, you can register any account. To create an admin:
-
-1. Register normally at http://localhost:3001/register
-2. Update the role in MySQL:
-
-```sql
-UPDATE stocktrading_v2.users SET role='ADMIN' WHERE email='your@email.com';
-```
-
-Admin can access: **http://localhost:3001/admin**
-
----
-
-## API Endpoints
-
-### Auth
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| POST | `/api/auth/register` | Register new user |
-| POST | `/api/auth/login` | Login, returns JWT token |
-
-### Stocks
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | `/api/stocks` | Get all stocks |
-| GET | `/api/stocks/{symbol}` | Get single stock |
-| GET | `/api/stocks/{symbol}/history` | Get price history |
-
-### Trading
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| POST | `/api/trade/execute` | Buy or sell stock |
-| GET | `/api/trade/portfolio` | Get user portfolio |
-| GET | `/api/trade/history` | Get trade history |
-
-### User
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | `/api/user/profile` | Get user profile |
-| POST | `/api/user/deposit` | Add funds |
-
-### Admin (requires ADMIN role)
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | `/api/admin/stats` | Platform stats |
-| GET | `/api/admin/users` | All users |
-| DELETE | `/api/admin/users/{id}` | Delete user |
-| GET | `/api/admin/trades` | All trades |
-| POST | `/api/admin/stocks` | Add stock |
-| PUT | `/api/admin/stocks/{id}` | Update stock |
-| DELETE | `/api/admin/stocks/{id}` | Delete stock |
-
-### Prediction
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| POST | `/predict` | AI price prediction (port 5001) |
-
----
-
-## Common Issues & Fixes
-
-| Problem | Fix |
-|---------|-----|
-| Backend won't start | Make sure MySQL is running and `.env` credentials are correct |
-| `Port 9090 already in use` | Run `lsof -ti:9090 \| xargs kill -9` |
-| `Port 3001 already in use` | Run `lsof -ti:3001 \| xargs kill -9` |
-| Login says "Invalid email or password" | Register first, then login with same credentials |
-| CORS errors in browser console | Make sure backend is running on port 9090 |
-| Chart not loading | Make sure you are logged in and a stock is selected |
-
----
-
-## Changes Made (Session — June 2026)
-
-- Fixed `Register.js` navigation bug (`/Dashboard` → `/dashboard`)
-- Fixed Spring Security CORS configuration
-- Replaced broken `run.sh` (was crashing due to classpath collision) with `./mvnw spring-boot:run`
-- Externalized all secrets from `application.properties` into `.env` using `${VAR:default}` placeholders
-- Fixed `WebConfig.java` to read CORS origins from properties
-- Fixed candlestick chart zoom reset — chart now updates data in-place instead of remounting every 3 seconds
-- Fixed `fetchHistory` causing spinner on every background poll (unmounting the chart)
-- Removed duplicate `TradingChart.jsx` that was conflicting with `TradingChart.js`
-
----
-
-## Academic Context
-
-Numerical methods covered:
-- **#15** Financial Forecasting — Gauss Elimination for linear regression
-- **#16** Stock Price Prediction — Newton's Divided Difference
-- **#17** Volatility Simulator — Simpson's Rule + RK4
-
----
-
-Made by [abhay27singh](https://github.com/abhay27singh)
+This is an **educational paper-trading project**. It uses **virtual money** and simulated trades — it is **not** a real brokerage and does not handle real funds.

@@ -101,10 +101,11 @@ const TradingChart = ({ data, height = 420 }) => {
     const chart = chartRef.current;
     if (!chart || !data || data.length === 0) return;
 
-    const bucket = pickBucket(data);
-    const candles = buildCandles(data, bucket);
+    // Detect real OHLCV format {time, open, high, low, close} vs tick format {time, price}
+    const isOhlcv = data[0] && data[0].open !== undefined;
 
-    if (candles.length >= 1) {
+    if (isOhlcv) {
+      // Real candles from yfinance — use directly
       if (!candleSeriesRef.current) {
         candleSeriesRef.current = chart.addSeries(CandlestickSeries, {
           upColor: '#22c55e',
@@ -115,26 +116,47 @@ const TradingChart = ({ data, height = 420 }) => {
           wickUpColor: '#22c55e',
         });
       }
-      candleSeriesRef.current.setData(candles);
-    } else {
-      if (!lineSeriesRef.current) {
-        lineSeriesRef.current = chart.addSeries(LineSeries, {
-          color: '#22c55e',
-          lineWidth: 2,
-        });
-      }
+      const deduped = [];
       const seen = new Set();
-      const uniqueData = [];
-      for (const point of data) {
-        if (!seen.has(point.time)) {
-          seen.add(point.time);
-          uniqueData.push({ time: point.time, value: point.price });
-        }
+      for (const c of data) {
+        if (!seen.has(c.time)) { seen.add(c.time); deduped.push(c); }
       }
-      lineSeriesRef.current.setData(uniqueData);
+      candleSeriesRef.current.setData(deduped);
+    } else {
+      // Legacy tick format — aggregate into candles
+      const bucket = pickBucket(data);
+      const candles = buildCandles(data, bucket);
+      if (candles.length >= 1) {
+        if (!candleSeriesRef.current) {
+          candleSeriesRef.current = chart.addSeries(CandlestickSeries, {
+            upColor: '#22c55e',
+            downColor: '#ef4444',
+            borderDownColor: '#ef4444',
+            borderUpColor: '#22c55e',
+            wickDownColor: '#ef4444',
+            wickUpColor: '#22c55e',
+          });
+        }
+        candleSeriesRef.current.setData(candles);
+      } else {
+        if (!lineSeriesRef.current) {
+          lineSeriesRef.current = chart.addSeries(LineSeries, {
+            color: '#22c55e',
+            lineWidth: 2,
+          });
+        }
+        const seen = new Set();
+        const uniqueData = [];
+        for (const point of data) {
+          if (!seen.has(point.time)) {
+            seen.add(point.time);
+            uniqueData.push({ time: point.time, value: point.price });
+          }
+        }
+        lineSeriesRef.current.setData(uniqueData);
+      }
     }
 
-    // Only auto-fit on the first data load; afterwards keep the user's zoom.
     if (!fittedRef.current) {
       chart.timeScale().fitContent();
       fittedRef.current = true;

@@ -8,7 +8,6 @@ import java.util.*;
 
 @RestController
 @RequestMapping("/api/predict")
-@CrossOrigin(origins = "http://localhost:3001")
 public class PredictionController {
 
     @Autowired

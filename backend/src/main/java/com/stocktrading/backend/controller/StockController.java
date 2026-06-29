@@ -3,6 +3,7 @@ package com.stocktrading.backend.controller;
 import com.stocktrading.backend.entity.PriceHistory;
 import com.stocktrading.backend.entity.Stock;
 import com.stocktrading.backend.repository.PriceHistoryRepository;
+import com.stocktrading.backend.service.MarketDataClient;
 import com.stocktrading.backend.service.StockService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -17,12 +18,17 @@ import java.util.*;
 public class StockController {
 
     private final StockService stockService;
-
     private final PriceHistoryRepository priceHistoryRepository;
+    private final MarketDataClient marketDataClient;
 
     @GetMapping
     public ResponseEntity<List<Stock>> getAllStocks() {
         return ResponseEntity.ok(stockService.getAllStocks());
+    }
+
+    @GetMapping("/market-status")
+    public ResponseEntity<Map<String, Object>> getMarketStatus() {
+        return ResponseEntity.ok(marketDataClient.getMarketStatus());
     }
 
     @GetMapping("/{symbol}")
@@ -52,5 +58,15 @@ public class StockController {
         }).toList();
 
         return ResponseEntity.ok(response);
+    }
+
+    // Real intraday OHLCV candles proxied from Python/yfinance
+    @GetMapping("/{symbol}/ohlcv")
+    public ResponseEntity<List<Map<String, Object>>> getOhlcv(
+            @PathVariable String symbol,
+            @RequestParam(defaultValue = "1d") String period,
+            @RequestParam(defaultValue = "5m") String interval) {
+        List<Map<String, Object>> candles = marketDataClient.getHistory(symbol, period, interval);
+        return ResponseEntity.ok(candles);
     }
 }

@@ -1,12 +1,17 @@
 import React from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import { AnimatePresence } from 'framer-motion';
 import { AuthProvider, useAuth } from './context/AuthContext';
-import { CssBaseline, Box } from '@mui/material';
+import { CssBaseline, Box, ThemeProvider } from '@mui/material';
+import theme from './theme';
+import './styles/animations.css';
 import Navbar from './components/Navbar';
+import PageTransition from './components/PageTransition';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import Dashboard from './pages/Dashboard';
 import Stocks from './pages/Stocks';
+import Options from './pages/Options';
 import Portfolio from './pages/Portfolio';
 import Admin from './pages/Admin';
 
@@ -24,33 +29,46 @@ const AdminRoute = ({ children }) => {
   return children;
 };
 
+const AnimatedRoutes = () => {
+  const { user } = useAuth();
+  const location = useLocation();
+  return (
+    <AnimatePresence mode="wait">
+      <Routes location={location} key={location.pathname}>
+        <Route path="/login" element={
+          user ? <Navigate to="/dashboard" /> : <PageTransition><Login /></PageTransition>
+        } />
+        <Route path="/register" element={
+          user ? <Navigate to="/dashboard" /> : <PageTransition><Register /></PageTransition>
+        } />
+        <Route path="/dashboard" element={
+          <PrivateRoute><PageTransition><Dashboard /></PageTransition></PrivateRoute>
+        } />
+        <Route path="/stocks" element={
+          <PrivateRoute><PageTransition><Stocks /></PageTransition></PrivateRoute>
+        } />
+        <Route path="/options" element={
+          <PrivateRoute><PageTransition><Options /></PageTransition></PrivateRoute>
+        } />
+        <Route path="/portfolio" element={
+          <PrivateRoute><PageTransition><Portfolio /></PageTransition></PrivateRoute>
+        } />
+        <Route path="/admin" element={
+          <AdminRoute><PageTransition><Admin /></PageTransition></AdminRoute>
+        } />
+        <Route path="*" element={<Navigate to="/login" />} />
+      </Routes>
+    </AnimatePresence>
+  );
+};
+
 const AppRoutes = () => {
   const { user } = useAuth();
   return (
     <BrowserRouter>
       {user && <Navbar />}
-      <Box sx={{ bgcolor: '#f5f7fa', minHeight: '100vh' }}>
-        <Routes>
-          <Route path="/login" element={
-            user ? <Navigate to="/dashboard" /> : <Login />
-          } />
-          <Route path="/register" element={
-            user ? <Navigate to="/dashboard" /> : <Register />
-          } />
-          <Route path="/dashboard" element={
-            <PrivateRoute><Dashboard /></PrivateRoute>
-          } />
-          <Route path="/stocks" element={
-            <PrivateRoute><Stocks /></PrivateRoute>
-          } />
-          <Route path="/portfolio" element={
-            <PrivateRoute><Portfolio /></PrivateRoute>
-          } />
-          <Route path="/admin" element={
-            <AdminRoute><Admin /></AdminRoute>
-          } />
-          <Route path="*" element={<Navigate to="/login" />} />
-        </Routes>
+      <Box sx={{ minHeight: '100vh' }}>
+        <AnimatedRoutes />
       </Box>
     </BrowserRouter>
   );
@@ -58,10 +76,12 @@ const AppRoutes = () => {
 
 const App = () => {
   return (
-    <AuthProvider>
+    <ThemeProvider theme={theme}>
       <CssBaseline />
-      <AppRoutes />
-    </AuthProvider>
+      <AuthProvider>
+        <AppRoutes />
+      </AuthProvider>
+    </ThemeProvider>
   );
 };
 

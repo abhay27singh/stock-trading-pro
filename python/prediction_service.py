@@ -2,8 +2,50 @@ from flask import Flask, request, jsonify
 from flask_cors import CORS
 import numpy as np
 
+import logging
+import time
+import traceback
+
+import market_data
+import options_pricing  # Phase 4: option pricing engine (Black-Scholes + Binomial + Monte Carlo)
+
 app = Flask(__name__)
 CORS(app)
+
+# Annual risk-free interest rate used for option pricing (India ~7%)
+RISK_FREE_RATE = 0.07
+
+# --- Logging: every request + every error (captured to logs/python.log) ---------
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s %(levelname)5s [%(name)s] %(message)s",
+)
+logger = logging.getLogger("python-service")
+
+
+@app.before_request
+def _log_request_start():
+    request._start_time = time.time()
+
+
+@app.after_request
+def _log_request_end(response):
+    try:
+        ms = int((time.time() - getattr(request, "_start_time", time.time())) * 1000)
+        req_id = request.headers.get("X-Request-Id", "-")
+        logger.info("%s %s -> %s (%dms) [%s]",
+                    request.method, request.path, response.status_code, ms, req_id)
+    except Exception:
+        pass
+    return response
+
+
+@app.errorhandler(Exception)
+def _log_exception(e):
+    req_id = request.headers.get("X-Request-Id", "-")
+    logger.error("Unhandled error on %s %s [%s]: %s\n%s",
+                 request.method, request.path, req_id, e, traceback.format_exc())
+    return jsonify({"error": str(e)}), 500
 
 def newton_divided_difference(x_points, y_points, x):
     n = len(x_points)
@@ -159,9 +201,155 @@ def predict_all():
         }
     })
 
+# --- Market data (yfinance) ----------------------------------------------------
+
+@app.route('/market/status', methods=['GET'])
+def market_status():
+    """NSE/BSE open/closed status for the UI badge."""
+    return jsonify(market_data.market_status())
+
+
+@app.route('/market/universe', methods=['GET'])
+def market_universe():
+    """The default set of symbols this service seeds/polls."""
+    return jsonify({"symbols": market_data.DEFAULT_UNIVERSE})
+
+
+@app.route('/market/quote/<symbol>', methods=['GET'])
+def market_quote(symbol):
+    quote = market_data.get_quote(symbol)
+    if quote is None:
+        return jsonify({"error": f"No data for {symbol}"}), 404
+    return jsonify(quote)
+
+
+@app.route('/market/quotes', methods=['POST'])
+def market_quotes():
+    """Batch quotes. Body: {"symbols": ["RELIANCE", "TCS", ...]}.
+    Falls back to the default universe when no symbols are supplied."""
+    data = request.get_json(silent=True) or {}
+    symbols = data.get('symbols') or market_data.DEFAULT_UNIVERSE
+    return jsonify({"quotes": market_data.get_quotes(symbols)})
+
+
+@app.route('/market/history/<symbol>', methods=['GET'])
+def market_history(symbol):
+    """OHLCV candles. Query: ?period=1mo&interval=1d"""
+    period = request.args.get('period', '1mo')
+    interval = request.args.get('interval', '1d')
+    candles = market_data.get_history(symbol, period=period, interval=interval)
+    return jsonify({"symbol": symbol.upper(), "candles": candles})
+
+
+# --- Options pricing (Black-Scholes + Binomial + Monte Carlo) -------------------
+# Engine lives in: python/options_pricing.py
+
+@app.route('/options/price', methods=['POST'])
+def options_price():
+    """Price one option every way + Greeks.
+    Body: {spot, strike, daysToExpiry, type, [volatility], [rate]}"""
+    data = request.get_json(silent=True) or {}
+    try:
+        spot = float(data['spot'])
+        strike = float(data['strike'])
+        days = float(data.get('daysToExpiry', 30))
+        opt_type = data.get('type', 'call').lower()
+        rate = float(data.get('rate', RISK_FREE_RATE))
+        sigma = float(data.get('volatility', 0.25))
+    except (KeyError, TypeError, ValueError):
+        return jsonify({"error": "spot, strike and type are required"}), 400
+
+    T = days / 365.0
+    return jsonify(options_pricing.price_all_methods(spot, strike, T, rate, sigma, opt_type))
+
+
+@app.route('/options/chain/<symbol>', methods=['GET'])
+def options_chain(symbol):
+    """Build an options chain for a real stock: strikes around the live spot,
+    each with Black-Scholes Call & Put prices + Delta. Query: ?expiryDays=30"""
+    expiry_days = float(request.args.get('expiryDays', 30))
+
+    quote = market_data.get_quote(symbol)
+    if quote is None:
+        return jsonify({"error": f"No data for {symbol}"}), 404
+    spot = quote['currentPrice']
+
+    # volatility from ~3 months of daily closes (engine: historical_volatility)
+    hist = market_data.get_history(symbol, period="3mo", interval="1d")
+    closes = [c['close'] for c in hist] if hist else []
+    sigma = options_pricing.historical_volatility(closes)
+
+    T = expiry_days / 365.0
+    r = RISK_FREE_RATE
+
+    # strikes from -10% to +10% of spot, in 2.5% steps
+    chain = []
+    for pct in [-10, -7.5, -5, -2.5, 0, 2.5, 5, 7.5, 10]:
+        strike = round(spot * (1 + pct / 100), 2)
+        chain.append({
+            "strike": strike,
+            "moneyness": "ATM" if pct == 0 else ("ITM-Call" if pct < 0 else "OTM-Call"),
+            "call": {
+                "price": options_pricing.black_scholes(spot, strike, T, r, sigma, "call"),
+                "delta": options_pricing.greeks(spot, strike, T, r, sigma, "call")["delta"],
+            },
+            "put": {
+                "price": options_pricing.black_scholes(spot, strike, T, r, sigma, "put"),
+                "delta": options_pricing.greeks(spot, strike, T, r, sigma, "put")["delta"],
+            },
+        })
+
+    return jsonify({
+        "symbol": quote['symbol'],
+        "spot": spot,
+        "volatility": sigma,
+        "riskFreeRate": r,
+        "expiryDays": expiry_days,
+        "chain": chain,
+    })
+
+
+@app.route('/options/quote/<symbol>', methods=['GET'])
+def options_quote(symbol):
+    """Authoritative premium for ONE option contract (used by the Trading service
+    when buying/selling, so the price is computed server-side, not trusted from
+    the client). Query: ?strike=&days=&type=call|put"""
+    try:
+        strike = float(request.args['strike'])
+    except (KeyError, ValueError):
+        return jsonify({"error": "strike is required"}), 400
+    days = float(request.args.get('days', 30))
+    opt_type = request.args.get('type', 'call').lower()
+
+    quote = market_data.get_quote(symbol)
+    if quote is None:
+        return jsonify({"error": f"No data for {symbol}"}), 404
+    spot = quote['currentPrice']
+
+    hist = market_data.get_history(symbol, period="3mo", interval="1d")
+    closes = [c['close'] for c in hist] if hist else []
+    sigma = options_pricing.historical_volatility(closes)
+
+    T = days / 365.0
+    premium = options_pricing.black_scholes(spot, strike, T, RISK_FREE_RATE, sigma, opt_type)
+    g = options_pricing.greeks(spot, strike, T, RISK_FREE_RATE, sigma, opt_type)
+
+    return jsonify({
+        "symbol": quote['symbol'],
+        "companyName": quote.get('symbol'),
+        "spot": spot,
+        "strike": strike,
+        "type": opt_type,
+        "days": days,
+        "volatility": sigma,
+        "premium": premium,
+        "greeks": g,
+    })
+
+
 @app.route('/health', methods=['GET'])
 def health():
-    return jsonify({"status": "running", "service": "Stock Prediction API"})
+    return jsonify({"status": "running", "service": "Stock Prediction + Market Data + Options API"})
 
 if __name__ == '__main__':
     app.run(port=5001, debug=True)

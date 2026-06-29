@@ -1,11 +1,6 @@
-# Backend (Spring Boot)
-backend/target/
-backend/*.jar
-backend/.mvn/
-backend/mvnw
-backend/mvnw.cmd
-
-# Frontend (React)
+# Build output (all Maven services + frontend)
+**/target/
+*.jar
 frontend/node_modules/
 frontend/build/
 
@@ -16,6 +11,11 @@ python/*.pyc
 python/*.pyo
 *.egg-info/
 
+# Logs & temp (runtime only)
+logs/
+*.log
+*.tmp
+
 # IDE
 .idea/
 .vscode/
@@ -25,10 +25,13 @@ python/*.pyo
 .DS_Store
 Thumbs.db
 
-# Env files
+# Env files (never commit real secrets)
 .env
 .env.local
 .env.production
 
 # Claude Code
 .claude/
+
+# NOTE: the Maven wrapper (mvnw, mvnw.cmd, .mvn/) IS committed on purpose,
+# so anyone can build the Spring services without installing Maven.

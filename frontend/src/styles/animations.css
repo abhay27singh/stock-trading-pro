@@ -1,0 +1,79 @@
+/* Reusable keyframe animations for the trading terminal UI */
+
+/* Price tick flash — apply .flash-up / .flash-down briefly when a price changes */
+@keyframes flashUp {
+  0%   { background-color: rgba(34, 197, 94, 0.35); }
+  100% { background-color: transparent; }
+}
+@keyframes flashDown {
+  0%   { background-color: rgba(239, 68, 68, 0.35); }
+  100% { background-color: transparent; }
+}
+.flash-up   { animation: flashUp 0.6s ease-out; }
+.flash-down { animation: flashDown 0.6s ease-out; }
+
+/* Pulsing "LIVE" dot */
+@keyframes pulseDot {
+  0%   { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.6); }
+  70%  { box-shadow: 0 0 0 8px rgba(34, 197, 94, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0); }
+}
+.live-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #22c55e;
+  animation: pulseDot 1.8s infinite;
+}
+.live-dot.closed {
+  background: #ef4444;
+  animation: none;
+}
+
+/* Shimmer skeleton for loading states */
+@keyframes shimmer {
+  0%   { background-position: -468px 0; }
+  100% { background-position: 468px 0; }
+}
+.shimmer {
+  background: linear-gradient(90deg, #111722 25%, #1b2433 50%, #111722 75%);
+  background-size: 936px 100%;
+  animation: shimmer 1.4s infinite linear;
+  border-radius: 8px;
+}
+
+/* Soft glow used on accent text / live price */
+.glow-green {
+  text-shadow: 0 0 12px rgba(34, 197, 94, 0.45);
+}
+
+/* Slowly shifting multi-color gradient — used as the auth page background */
+@keyframes gradientShift {
+  0%   { background-position: 0% 50%; }
+  50%  { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+.animated-bg {
+  background: linear-gradient(
+    -45deg,
+    #0a0e17, #0d2818, #0a1f2e, #1a0f2e, #0a0e17
+  );
+  background-size: 400% 400%;
+  animation: gradientShift 18s ease infinite;
+}
+
+/* Floating glow blobs that drift behind the login card */
+@keyframes floatBlob {
+  0%   { transform: translate(0, 0) scale(1); }
+  33%  { transform: translate(40px, -30px) scale(1.1); }
+  66%  { transform: translate(-30px, 20px) scale(0.95); }
+  100% { transform: translate(0, 0) scale(1); }
+}
+.blob {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(70px);
+  opacity: 0.5;
+  pointer-events: none;
+}

@@ -13,6 +13,7 @@
     "@testing-library/react": "^16.3.2",
     "@testing-library/user-event": "^13.5.0",
     "axios": "^1.15.0",
+    "framer-motion": "^12.40.0",
     "lightweight-charts": "^5.1.0",
     "react": "^19.2.5",
     "react-dom": "^19.2.5",
@@ -23,7 +24,7 @@
     "web-vitals": "^2.1.4"
   },
   "scripts": {
-    "start": "PORT=3001 react-scripts start",
+    "start": "PORT=3002 react-scripts start",
     "build": "react-scripts build",
     "test": "react-scripts test",
     "eject": "react-scripts eject"

@@ -1,0 +1,70 @@
+server:
+  port: ${SERVER_PORT:8090}   # 8080 is taken by nginx on this machine
+
+spring:
+  application:
+    name: gateway
+  cloud:
+    gateway:
+      # Collapse duplicate CORS headers (gateway + downstream service both add them).
+      # Browsers reject responses with multiple Access-Control-Allow-Origin values.
+      default-filters:
+        - DedupeResponseHeader=Access-Control-Allow-Origin Access-Control-Allow-Credentials, RETAIN_UNIQUE
+      # Centralized CORS — the frontend only ever talks to the gateway
+      globalcors:
+        cors-configurations:
+          '[/**]':
+            allowedOrigins:
+              - "http://localhost:3002"
+            allowedMethods:
+              - GET
+              - POST
+              - PUT
+              - DELETE
+              - OPTIONS
+            allowedHeaders: "*"
+            allowCredentials: true
+      # Order matters — first match wins, so most specific paths come first.
+      routes:
+        # Auth + user/wallet → Auth service
+        - id: auth-service
+          uri: http://localhost:8082
+          predicates:
+            - Path=/api/auth/**,/api/user/**
+
+        # Admin STOCK management → Market-Data service (more specific than /api/admin/**)
+        - id: market-admin-stocks
+          uri: http://localhost:8081
+          predicates:
+            - Path=/api/admin/stocks/**
+
+        # Admin stats/users/trades → Trading service
+        - id: trading-admin
+          uri: http://localhost:8084
+          predicates:
+            - Path=/api/admin/**
+
+        # Options TRADING (buy/positions/close) → Trading service
+        # (must come before the market-data /api/options/** chain/price route)
+        - id: trading-options
+          uri: http://localhost:8084
+          predicates:
+            - Path=/api/options/buy,/api/options/positions,/api/options/close/**
+
+        # Trading + watchlist → Trading service
+        - id: trading-service
+          uri: http://localhost:8084
+          predicates:
+            - Path=/api/trade/**,/api/watchlist/**
+
+        # WebSocket live prices → Market-Data service
+        - id: market-ws
+          uri: http://localhost:8081
+          predicates:
+            - Path=/ws/**
+
+        # Stocks, prices, predictions, options → Market-Data service
+        - id: market-data
+          uri: http://localhost:8081
+          predicates:
+            - Path=/api/stocks/**,/api/predict/**,/api/options/**

@@ -1,5 +1,6 @@
 package com.stocktrading.backend.service;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.http.*;
@@ -9,7 +10,9 @@ import java.util.*;
 public class PredictionService {
 
     private final RestTemplate restTemplate = new RestTemplate();
-    private final String FLASK_URL = "http://localhost:5001/predict";
+
+    @Value("${prediction.service.url}")
+    private String baseUrl;
 
     public Map<String, Object> getPrediction(String symbol, List<Double> prices, Double buyPrice) {
         try {
@@ -24,7 +27,7 @@ public class PredictionService {
             HttpEntity<Map<String, Object>> entity = new HttpEntity<>(requestBody, headers);
 
             ResponseEntity<Map> response = restTemplate.postForEntity(
-                    FLASK_URL, entity, Map.class
+                    baseUrl + "/predict", entity, Map.class
             );
 
             return response.getBody();
