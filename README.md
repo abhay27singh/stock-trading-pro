@@ -74,23 +74,21 @@ Each service **owns its own database** — the textbook definition of loose coup
 - **Java 21** (e.g. `brew install openjdk@21`)
 - **Node.js 18+** and npm
 - **Python 3.9+**
-- **MySQL 8** running locally (default user `root` / password `***REDACTED***`, or set your own — see below)
+- **MySQL 8** running locally (`brew services start mysql`)
 - **Maven** (or use the bundled `./mvnw` wrapper in each service)
+
+`setup.sh` checks all of these and tells you what is missing.
 
 ---
 
-## 🚀 Quick Start (one command)
+## 🚀 Quick Start
 
 ```bash
-# 1. clone
 git clone https://github.com/abhay27singh/stock-trading-pro.git
 cd stock-trading-pro
 
-# 2. one-time: create the Python virtualenv
-cd python && python3 -m venv venv && ./venv/bin/pip install -r requirements.txt && cd ..
-
-# 3. start EVERYTHING (Python, Auth, Market-Data, Trading, Gateway, Frontend)
-./start-all.sh
+./setup.sh        # one-time: creates .env, Python venv, npm install
+./start-all.sh    # starts all 6 services
 ```
 
 Then open **http://localhost:3002**.
@@ -100,12 +98,42 @@ To stop everything:
 ./stop-all.sh
 ```
 
+`setup.sh` is safe to re-run — it never overwrites an existing `.env` and skips
+work already done. It asks once for your MySQL password and generates the JWT and
+internal service keys randomly, so no secret is shared between installs.
+
 > The databases (`auth_db`, `market_db`, `trading_db`) are created automatically on first run.
 > Register a new account in the app to start trading. To make a user an admin:
-> `mysql -uroot -p***REDACTED*** auth_db -e "UPDATE users SET role='ADMIN' WHERE email='you@example.com';"` (then log out & back in).
+> `mysql -u<user> -p auth_db -e "UPDATE users SET role='ADMIN' WHERE email='you@example.com';"`
+> then **log out and back in** (the role is embedded in the JWT).
 
-### Custom DB credentials
-The services read these env vars (defaults shown): `DB_USERNAME=root`, `DB_PASSWORD=***REDACTED***`, `JWT_SECRET`, `INTERNAL_API_KEY`. Set them before `./start-all.sh` if your MySQL differs.
+### Configuration
+
+All secrets live in `.env`, which is gitignored and never committed — see
+`.env.example` for the full list. The services deliberately have **no hardcoded
+fallbacks**, so a missing or incomplete `.env` stops startup with an explicit
+message rather than failing halfway.
+
+| Variable | Purpose |
+|---|---|
+| `DB_USERNAME`, `DB_PASSWORD` | MySQL credentials (each service uses its own schema) |
+| `JWT_SECRET` | Shared HS256 signing key — must be ≥ 32 bytes and identical across services |
+| `INTERNAL_API_KEY` | Guards service-to-service wallet calls |
+| `CORS_ALLOWED_ORIGINS` | Origins allowed to call the gateway and open the WebSocket |
+| `MARKET_POLL_RATE` | How often (ms) live quotes are pulled |
+
+---
+
+## 🩺 Troubleshooting
+
+| Symptom | Cause and fix |
+|---|---|
+| `✗ Missing .env` | Run `./setup.sh`. `.env` is gitignored, so a fresh clone never has one. |
+| `✗ Java 21 not found` | `brew install openjdk@21`, or set `JAVA_HOME` to a JDK 21. |
+| Services start, but login fails | MySQL is not running, or `DB_PASSWORD` is wrong. Check `logs/auth.log`. |
+| Logged in but every page is empty | Token expired or `JWT_SECRET` changed. Log out and back in. |
+| Prices frozen / chart empty | Python service down — check `logs/python.log`. yfinance also returns nothing when NSE is closed (weekends). |
+| A port is already in use | `./stop-all.sh` frees all six, then start again. |
 
 ---
 

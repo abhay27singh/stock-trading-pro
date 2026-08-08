@@ -12,7 +12,7 @@ mkdir -p "$LOGS"
 if [ -f "$ROOT/.env" ]; then
   set -a; . "$ROOT/.env"; set +a
 else
-  printf "\033[31m✗ Missing %s — copy .env.example to .env and fill in secrets.\033[0m\n" "$ROOT/.env"
+  printf "\033[31m✗ Missing %s — run ./setup.sh first (it creates .env and installs dependencies).\033[0m\n" "$ROOT/.env"
   exit 1
 fi
 
@@ -35,8 +35,20 @@ if [ -n "$placeholder" ]; then
   exit 1
 fi
 
-# Pin JDK 21 for all Spring services
-export JAVA_HOME="/usr/local/opt/openjdk@21"
+# Pin JDK 21 for all Spring services. Locations differ by platform (Apple Silicon vs
+# Intel Homebrew vs Linux), so probe rather than hardcode one path.
+if [ -z "${JAVA_HOME:-}" ] || ! "$JAVA_HOME/bin/java" -version 2>&1 | grep -q '"21'; then
+  for candidate in /opt/homebrew/opt/openjdk@21 /usr/local/opt/openjdk@21 /usr/lib/jvm/java-21-openjdk; do
+    [ -x "$candidate/bin/java" ] && { export JAVA_HOME="$candidate"; break; }
+  done
+fi
+if [ -z "${JAVA_HOME:-}" ] && command -v /usr/libexec/java_home >/dev/null 2>&1; then
+  JAVA_HOME="$(/usr/libexec/java_home -v 21 2>/dev/null)" && export JAVA_HOME
+fi
+if [ -z "${JAVA_HOME:-}" ] || [ ! -x "$JAVA_HOME/bin/java" ]; then
+  printf "\033[31m✗ Java 21 not found. Install it (brew install openjdk@21) or set JAVA_HOME.\033[0m\n"
+  exit 1
+fi
 export PATH="$JAVA_HOME/bin:$PATH"
 
 green() { printf "\033[32m%s\033[0m\n" "$1"; }
@@ -57,6 +69,17 @@ wait_port() {
 free_port() { lsof -ti :"$1" | xargs kill -9 2>/dev/null; }
 
 echo "== Stock Trading Pro — starting all services =="
+
+# Dependencies that setup.sh installs. Checked here so a fresh clone gets a clear
+# instruction instead of "no such file" from nohup or a blank frontend log.
+if [ ! -x "$ROOT/python/venv/bin/python" ]; then
+  red "✗ Python virtualenv missing — run ./setup.sh first."
+  exit 1
+fi
+if [ ! -d "$ROOT/frontend/node_modules" ]; then
+  red "✗ Frontend dependencies missing — run ./setup.sh first."
+  exit 1
+fi
 
 # 0) MySQL sanity check
 if ! mysqladmin ping -u"${DB_USERNAME:-root}" -p"${DB_PASSWORD}" --silent 2>/dev/null; then
