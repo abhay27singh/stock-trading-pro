@@ -28,7 +28,10 @@ const Navbar = () => {
     return () => clearInterval(interval);
   }, []);
 
-  const handleLogout = () => { logout(); navigate('/login'); };
+  // logout() is async (it POSTs /auth/logout to clear the httpOnly cookie). Navigating
+  // before it resolves leaves `user` set, so App.js bounces /login straight back to
+  // /dashboard. Await it so the redirect happens once the session is actually gone.
+  const handleLogout = async () => { await logout(); navigate('/login'); };
   const isActive = (path) => location.pathname === path;
 
   const navItem = (path, label, Icon) => (

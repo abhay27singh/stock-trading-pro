@@ -11,7 +11,8 @@ import java.math.BigDecimal;
  * JWT) and the stock is a plain symbol — no foreign keys to users or stocks tables.
  */
 @Entity
-@Table(name = "portfolios")
+@Table(name = "portfolios",
+       uniqueConstraints = @UniqueConstraint(name = "uk_portfolio_user_symbol", columnNames = {"user_email", "symbol"}))
 @Data
 @NoArgsConstructor
 @AllArgsConstructor

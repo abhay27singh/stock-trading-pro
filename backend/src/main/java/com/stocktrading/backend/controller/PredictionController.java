@@ -14,13 +14,22 @@ public class PredictionController {
     private PredictionService predictionService;
 
     @PostMapping("/{symbol}")
-    public ResponseEntity<Map<String, Object>> predict(
+    public ResponseEntity<?> predict(
             @PathVariable String symbol,
             @RequestBody Map<String, Object> body) {
 
-        List<Double> prices = (List<Double>) body.get("prices");
-        Double buyPrice = body.get("buyPrice") != null ?
-                ((Number) body.get("buyPrice")).doubleValue() : prices.get(0);
+        Object raw = body.get("prices");
+        if (!(raw instanceof List) || ((List<?>) raw).isEmpty()) {
+            return ResponseEntity.badRequest().body(Map.of("error", "prices (non-empty array) is required"));
+        }
+        List<Double> prices = ((List<?>) raw).stream()
+                .filter(p -> p instanceof Number)
+                .map(p -> ((Number) p).doubleValue())
+                .toList();
+        if (prices.size() < 3) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Need at least 3 numeric price points"));
+        }
+        Double buyPrice = body.get("buyPrice") instanceof Number n ? n.doubleValue() : prices.get(0);
 
         Map<String, Object> result = predictionService.getPrediction(symbol, prices, buyPrice);
         return ResponseEntity.ok(result);

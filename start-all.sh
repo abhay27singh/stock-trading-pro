@@ -7,6 +7,34 @@ ROOT="$(cd "$(dirname "$0")" && pwd)"
 LOGS="$ROOT/logs"
 mkdir -p "$LOGS"
 
+# Load secrets from .env (gitignored). No hardcoded fallbacks live in the
+# services anymore, so these must be provided here or the services won't start.
+if [ -f "$ROOT/.env" ]; then
+  set -a; . "$ROOT/.env"; set +a
+else
+  printf "\033[31m✗ Missing %s — copy .env.example to .env and fill in secrets.\033[0m\n" "$ROOT/.env"
+  exit 1
+fi
+
+missing=""
+placeholder=""
+for v in DB_PASSWORD JWT_SECRET INTERNAL_API_KEY; do
+  eval "val=\${$v:-}"
+  if [ -z "$val" ]; then
+    missing="$missing $v"
+  elif printf '%s' "$val" | grep -q "change_me\|your_"; then
+    placeholder="$placeholder $v"
+  fi
+done
+if [ -n "$missing" ]; then
+  printf "\033[31m✗ Required secret(s) unset in .env:%s\033[0m\n" "$missing"
+  exit 1
+fi
+if [ -n "$placeholder" ]; then
+  printf "\033[31m✗ Secret(s) still set to the .env.example placeholder:%s — set real values.\033[0m\n" "$placeholder"
+  exit 1
+fi
+
 # Pin JDK 21 for all Spring services
 export JAVA_HOME="/usr/local/opt/openjdk@21"
 export PATH="$JAVA_HOME/bin:$PATH"
@@ -31,8 +59,8 @@ free_port() { lsof -ti :"$1" | xargs kill -9 2>/dev/null; }
 echo "== Stock Trading Pro — starting all services =="
 
 # 0) MySQL sanity check
-if ! mysqladmin ping -uroot -p***REDACTED*** --silent 2>/dev/null; then
-  yellow "⚠ MySQL not reachable on root/***REDACTED*** — make sure MySQL is running first."
+if ! mysqladmin ping -u"${DB_USERNAME:-root}" -p"${DB_PASSWORD}" --silent 2>/dev/null; then
+  yellow "⚠ MySQL not reachable with the configured DB_USERNAME/DB_PASSWORD — make sure MySQL is running first."
 fi
 
 # Free any stale processes on our ports

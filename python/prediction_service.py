@@ -3,6 +3,7 @@ from flask_cors import CORS
 import numpy as np
 
 import logging
+import os
 import time
 import traceback
 
@@ -10,10 +11,23 @@ import market_data
 import options_pricing  # Phase 4: option pricing engine (Black-Scholes + Binomial + Monte Carlo)
 
 app = Flask(__name__)
-CORS(app)
+# Restrict CORS to configured browser origins instead of allowing every origin.
+_cors_origins = [o.strip() for o in os.environ.get(
+    "CORS_ALLOWED_ORIGINS", "http://localhost:3001").split(",") if o.strip()]
+CORS(app, origins=_cors_origins)
 
 # Annual risk-free interest rate used for option pricing (India ~7%)
 RISK_FREE_RATE = 0.07
+
+# Most recent points fed to Newton's divided-difference interpolation. The polynomial
+# degree is one less than this, and extrapolating a high-degree fit one step past the
+# last node diverges fast (Runge phenomenon). Measured on 24 real TCS daily closes with
+# a true last close of 2452.70:
+#   window  3 -> 2652     window  6 ->  2957
+#   window  4 -> 2764     window  7 ->  3511
+#   window  5 -> 2837     window 10 -> 20701   (unbounded: about -26,000,000)
+# 4 keeps a genuine cubic divided-difference table while staying near the data.
+NEWTON_MAX_POINTS = 4
 
 # --- Logging: every request + every error (captured to logs/python.log) ---------
 logging.basicConfig(
@@ -45,7 +59,8 @@ def _log_exception(e):
     req_id = request.headers.get("X-Request-Id", "-")
     logger.error("Unhandled error on %s %s [%s]: %s\n%s",
                  request.method, request.path, req_id, e, traceback.format_exc())
-    return jsonify({"error": str(e)}), 500
+    # Full detail goes to the log above; the client gets a generic message only.
+    return jsonify({"error": "Internal server error"}), 500
 
 def newton_divided_difference(x_points, y_points, x):
     n = len(x_points)
@@ -131,18 +146,36 @@ def gauss_elimination_regression(prices):
 
 @app.route('/predict', methods=['POST'])
 def predict_all():
-    data = request.get_json()
-    prices = data.get('prices', [])
+    data = request.get_json(silent=True) or {}
+    raw_prices = data.get('prices', [])
     symbol = data.get('symbol', 'STOCK')
-    buy_price = data.get('buyPrice', prices[0] if prices else 0)
 
+    if not isinstance(raw_prices, list):
+        return jsonify({"error": "prices must be an array of numbers"}), 400
+    try:
+        prices = [float(p) for p in raw_prices]
+    except (TypeError, ValueError):
+        return jsonify({"error": "prices must be an array of numbers"}), 400
     if len(prices) < 3:
         return jsonify({"error": "Need at least 3 price points"}), 400
+
+    try:
+        buy_price = float(data.get('buyPrice', prices[0]))
+    except (TypeError, ValueError):
+        buy_price = prices[0]
+
+    # Newton's divided difference builds a polynomial of degree len(points)-1 and we
+    # evaluate it one step PAST the last node, so error grows explosively with the point
+    # count (Runge phenomenon): 7 points is well behaved, 24 real daily closes around
+    # ₹2400 extrapolate to about -26,000,000. Interpolate over only the most recent
+    # window so the degree stays low; the other methods still see the full series.
+    newton_window   = prices[-NEWTON_MAX_POINTS:]
+    newton_x        = list(range(len(newton_window)))
+    newton_pred     = newton_divided_difference(newton_x, newton_window, len(newton_window))
 
     x_points = list(range(len(prices)))
     next_x = len(prices)
 
-    newton_pred     = newton_divided_difference(x_points, prices, next_x)
     simpsons_result = simpsons_rule(prices)
     rk4_forecast    = runge_kutta_forecast(prices)
     nr_breakeven    = newton_raphson_breakeven(prices, buy_price)
@@ -352,4 +385,8 @@ def health():
     return jsonify({"status": "running", "service": "Stock Prediction + Market Data + Options API"})
 
 if __name__ == '__main__':
-    app.run(port=5001, debug=True)
+    # debug MUST stay off by default: Werkzeug's debug mode exposes an interactive
+    # code-execution console on any unhandled exception (remote code execution).
+    # Bind to loopback so the service is not reachable from the network.
+    debug = os.environ.get("FLASK_DEBUG", "false").lower() in ("1", "true", "yes")
+    app.run(host="127.0.0.1", port=5001, debug=debug)

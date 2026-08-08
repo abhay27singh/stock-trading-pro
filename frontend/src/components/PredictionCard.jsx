@@ -3,19 +3,25 @@ import {
   Box, Typography, Button, Grid, Paper, Chip
 } from '@mui/material';
 import { getPrediction } from '../services/predictionService';
+import { stockService } from '../services/api';
 
-const PredictionCard = ({ symbol, currentPrice, token }) => {
+const PredictionCard = ({ symbol, currentPrice }) => {
   const [prediction, setPrediction] = useState(null);
   const [loading, setLoading] = useState(false);
 
   const handlePredict = async () => {
     setLoading(true);
     try {
-      const prices = Array.from({ length: 7 }, (_, i) =>
-        parseFloat((currentPrice * (0.97 + i * 0.01)).toFixed(2))
-      );
-
-      const res = await getPrediction(symbol, prices, prices[0], token);
+      const ohlcv = await stockService.getOhlcv(symbol, '1mo', '1d');
+      const prices = (ohlcv.data || [])
+        .map(c => c.close)
+        .filter(v => v != null && !isNaN(v));
+      if (prices.length < 3) {
+        console.log('Not enough price history for prediction');
+        setLoading(false);
+        return;
+      }
+      const res = await getPrediction(symbol, prices, prices[0]);
       setPrediction(res.predictions);
     } catch (err) {
       console.log(err);

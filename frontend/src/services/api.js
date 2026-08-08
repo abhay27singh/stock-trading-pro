@@ -6,15 +6,25 @@ const API_URL = 'http://localhost:8090/api';
 
 const api = axios.create({
   baseURL: API_URL,
+  // Send the httpOnly auth cookie with every request. The JWT is no longer kept
+  // in localStorage (XSS-readable) — the browser holds it in an httpOnly cookie
+  // and attaches it automatically, so no Authorization header is set here.
+  withCredentials: true,
+  // Never hang forever on an unresponsive service. Without this a down auth
+  // service makes the Logout request never settle, so logout silently does nothing.
+  timeout: 15000,
 });
 
-api.interceptors.request.use((config) => {
-  const token = localStorage.getItem('token');
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
+// Login/register legitimately 401 on bad credentials — that must not trigger a redirect.
+const isAuthEndpoint = (url = '') => url.includes('/auth/');
+
+const clearSession = () => {
+  localStorage.removeItem('user');
+  localStorage.removeItem('token'); // legacy pre-cookie JWT, if an old build left one
+  if (!window.location.pathname.startsWith('/login')) {
+    window.location.replace('/login');
   }
-  return config;
-});
+};
 
 // Log every failed API call to the console for easy debugging (status + url + message)
 api.interceptors.response.use(
@@ -24,6 +34,15 @@ api.interceptors.response.use(
     const url = err.config?.url || '?';
     const status = err.response?.status || 'NETWORK';
     console.error(`[API ✗] ${method} ${url} → ${status}`, err.response?.data ?? err.message);
+
+    // The auth cookie is httpOnly, so the app cannot tell from JS whether the
+    // session is still alive — a 401 is the only signal. Without this branch an
+    // expired cookie leaves `user` in localStorage, so the router keeps rendering
+    // the app (and bouncing /login → /dashboard) while every call 401s, with no
+    // way back to the login form. Clearing the stale profile breaks that trap.
+    if (err.response?.status === 401 && !isAuthEndpoint(err.config?.url)) {
+      clearSession();
+    }
     return Promise.reject(err);
   }
 );
@@ -31,12 +50,12 @@ api.interceptors.response.use(
 export const authService = {
   register: (data) => api.post('/auth/register', data),
   login: (data) => api.post('/auth/login', data),
+  logout: () => api.post('/auth/logout'),
 };
 
 export const stockService = {
   getAllStocks: () => api.get('/stocks'),
   getStock: (symbol) => api.get(`/stocks/${symbol}`),
-  getHistory: (symbol) => api.get(`/stocks/${symbol}/history`),
   // Real intraday OHLCV from yfinance — 5-min candles for today
   getOhlcv: (symbol, period = '1d', interval = '5m') =>
     api.get(`/stocks/${symbol}/ohlcv?period=${period}&interval=${interval}`),

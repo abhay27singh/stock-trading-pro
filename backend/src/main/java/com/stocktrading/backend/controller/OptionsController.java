@@ -1,5 +1,6 @@
 package com.stocktrading.backend.controller;
 
+import com.stocktrading.backend.config.RestClients;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.*;
 import org.springframework.web.bind.annotation.*;
@@ -16,7 +17,7 @@ import java.util.Map;
 @RequestMapping("/api/options")
 public class OptionsController {
 
-    private final RestTemplate restTemplate = new RestTemplate();
+    private final RestTemplate restTemplate = RestClients.withTimeouts();
 
     @Value("${prediction.service.url}")
     private String pythonUrl;

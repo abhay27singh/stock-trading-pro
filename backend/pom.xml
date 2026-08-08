@@ -116,6 +116,10 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
+                <configuration>
+                    <!-- JDK 23+ disables implicit annotation processing; Lombok needs it on -->
+                    <proc>full</proc>
+                </configuration>
                 <executions>
                     <execution>
                         <id>default-compile</id>

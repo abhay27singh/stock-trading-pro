@@ -66,14 +66,20 @@ const Options = () => {
     }).then(r => {
       notify(r.data, 'success');
       loadPositions();
-    }).catch(e => notify(e.response?.data || 'Buy failed', 'error'));
+    }).catch(e => {
+      const data = e.response?.data;
+      notify(typeof data === 'string' && data ? data : 'Buy failed', 'error');
+    });
   };
 
   const closePosition = (id) => {
     optionsService.closePosition(id).then(r => {
       notify(r.data, 'success');
       loadPositions();
-    }).catch(e => notify(e.response?.data || 'Close failed', 'error'));
+    }).catch(e => {
+      const data = e.response?.data;
+      notify(typeof data === 'string' && data ? data : 'Close failed', 'error');
+    });
   };
 
   const cell = { padding: '8px 10px', fontSize: '0.85rem' };

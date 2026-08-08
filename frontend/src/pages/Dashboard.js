@@ -91,7 +91,7 @@ const Dashboard = () => {
   const calculatePortfolioValue = () => {
     return portfolio.reduce((total, item) => {
       const stock = stocks.find(s => s.symbol === item.symbol);
-      return stock ? total + (stock.currentPrice * item.quantity) : total;
+      return total + (stock ? stock.currentPrice : item.avgBuyPrice) * item.quantity;
     }, 0);
   };
 
@@ -157,8 +157,8 @@ const Dashboard = () => {
           <Grid container spacing={2}>
             {portfolio.map((item, i) => {
               const stock = stocks.find(s => s.symbol === item.symbol);
-              const currentVal = stock ? (stock.currentPrice * item.quantity) : 0;
               const invested = item.avgBuyPrice * item.quantity;
+              const currentVal = stock ? (stock.currentPrice * item.quantity) : invested;
               const profit = currentVal - invested;
               const isProfit = profit >= 0;
               return (

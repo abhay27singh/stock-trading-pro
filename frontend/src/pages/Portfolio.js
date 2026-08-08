@@ -44,8 +44,8 @@ const Portfolio = () => {
   // Aggregate totals
   const totals = portfolio.reduce((acc, item) => {
     const stock = stocks.find(s => s.symbol === item.symbol);
-    const cur = stock ? stock.currentPrice * item.quantity : 0;
     const inv = item.avgBuyPrice * item.quantity;
+    const cur = stock ? stock.currentPrice * item.quantity : inv;
     acc.current += cur;
     acc.invested += inv;
     return acc;
@@ -108,8 +108,8 @@ const Portfolio = () => {
             ) : (
               portfolio.map((item, i) => {
                 const stock = stocks.find(s => s.symbol === item.symbol);
-                const currentVal = stock ? (stock.currentPrice * item.quantity) : 0;
                 const invested = item.avgBuyPrice * item.quantity;
+                const currentVal = stock ? (stock.currentPrice * item.quantity) : invested;
                 const profit = currentVal - invested;
                 const profitPct = invested ? (profit / invested) * 100 : 0;
                 const isProfit = profit >= 0;

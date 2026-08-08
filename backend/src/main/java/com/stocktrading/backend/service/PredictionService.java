@@ -1,5 +1,6 @@
 package com.stocktrading.backend.service;
 
+import com.stocktrading.backend.config.RestClients;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
@@ -9,7 +10,7 @@ import java.util.*;
 @Service
 public class PredictionService {
 
-    private final RestTemplate restTemplate = new RestTemplate();
+    private final RestTemplate restTemplate = RestClients.withTimeouts();
 
     @Value("${prediction.service.url}")
     private String baseUrl;

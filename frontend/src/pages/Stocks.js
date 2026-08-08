@@ -107,7 +107,8 @@ const Stocks = () => {
       setSnackbar({ open: true, message: `${type} order for ${quantity} ${selectedStock.symbol.replace('.BSE', '')} executed!`, severity: 'success' });
       loadStocks();
     } catch (err) {
-      setSnackbar({ open: true, message: err.response?.data || `${type} failed`, severity: 'error' });
+      const data = err.response?.data;
+      setSnackbar({ open: true, message: typeof data === 'string' && data ? data : `${type} failed`, severity: 'error' });
     }
   };
 

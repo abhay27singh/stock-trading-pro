@@ -7,7 +7,8 @@ import lombok.NoArgsConstructor;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "watchlist")
+@Table(name = "watchlist",
+       uniqueConstraints = @UniqueConstraint(name = "uk_watchlist_user_symbol", columnNames = {"user_email", "symbol"}))
 @Data
 @NoArgsConstructor
 @AllArgsConstructor

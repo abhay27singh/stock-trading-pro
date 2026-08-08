@@ -8,9 +8,12 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const token = localStorage.getItem('token');
+    // The JWT now lives in an httpOnly cookie (not readable here). We keep only a
+    // non-sensitive copy of the user profile for UI continuity across refreshes;
+    // the cookie is the real credential. If it has expired, the next API call
+    // returns 401 and the caller can log out.
     const userData = localStorage.getItem('user');
-    if (token && userData) {
+    if (userData) {
       setUser(JSON.parse(userData));
     }
     setLoading(false);
@@ -18,8 +21,8 @@ export const AuthProvider = ({ children }) => {
 
   const login = async (email, password) => {
     const response = await authService.login({ email, password });
-    const { token, ...userData } = response.data;
-    localStorage.setItem('token', token);
+    const userData = { ...response.data };
+    delete userData.token; // token is null now (it lives in the httpOnly cookie)
     localStorage.setItem('user', JSON.stringify(userData));
     setUser(userData);
     return response.data;
@@ -27,8 +30,8 @@ export const AuthProvider = ({ children }) => {
 
   const register = async (name, email, password) => {
     const response = await authService.register({ name, email, password });
-    const { token, ...userData } = response.data;
-    localStorage.setItem('token', token);
+    const userData = { ...response.data };
+    delete userData.token; // token is null now (it lives in the httpOnly cookie)
     localStorage.setItem('user', JSON.stringify(userData));
     setUser(userData);
     return response.data;
@@ -36,8 +39,12 @@ export const AuthProvider = ({ children }) => {
 
   const isAdmin = user?.role === 'ADMIN';
 
-  const logout = () => {
-    localStorage.removeItem('token');
+  const logout = async () => {
+    try {
+      await authService.logout(); // clears the httpOnly cookie server-side
+    } catch (e) {
+      // ignore — clear local state regardless
+    }
     localStorage.removeItem('user');
     setUser(null);
   };

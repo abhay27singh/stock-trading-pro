@@ -1,5 +1,6 @@
 package com.stocktrading.trading.client;
 
+import com.stocktrading.trading.config.RestClients;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
@@ -15,7 +16,7 @@ import java.util.Map;
 @Service
 public class MarketDataClient {
 
-    private final RestTemplate restTemplate = new RestTemplate();
+    private final RestTemplate restTemplate = RestClients.withTimeouts();
 
     @Value("${market.data.url}")
     private String marketDataUrl;

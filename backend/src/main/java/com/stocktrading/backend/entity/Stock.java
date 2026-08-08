@@ -37,10 +37,4 @@ public class Stock {
 
     @Column(name = "updated_at")
     private LocalDateTime updatedAt = LocalDateTime.now();
-
-    // Portfolio/Transaction/Watchlist now live in the Trading service (trading_db),
-    // so the Market-Data service no longer has relationships to them.
-    @JsonIgnore
-    @OneToMany(mappedBy = "stock", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
-    private List<PriceHistory> priceHistories;
 }

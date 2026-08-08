@@ -17,10 +17,25 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(RuntimeException.class)
     public ResponseEntity<String> handleRuntime(RuntimeException ex, HttpServletRequest req) {
-        String msg = ex.getMessage() == null ? "Request failed" : ex.getMessage();
+        // Only intentional business errors (bare RuntimeException / IllegalArgumentException)
+        // are echoed to the client. Other runtime types (NPE, ClassCastException, third-party
+        // errors) may embed internal detail, so those get a generic message.
+        boolean clientSafe = ex.getClass() == RuntimeException.class
+                || ex instanceof IllegalArgumentException;
+        String msg = (clientSafe && ex.getMessage() != null) ? ex.getMessage() : "Request failed";
         log.warn("Business error on {} {} [{}]: {}", req.getMethod(), req.getRequestURI(),
-                MDC.get("requestId"), msg);
+                MDC.get("requestId"), ex.getMessage());
         return ResponseEntity.badRequest().body(msg);
+    }
+
+    @ExceptionHandler(org.springframework.dao.DataIntegrityViolationException.class)
+    public ResponseEntity<String> handleConflict(Exception ex, HttpServletRequest req) {
+        // Unique-constraint hit (e.g. two first-buys of the same stock racing) —
+        // data stays consistent, the losing request just needs a retry.
+        log.warn("Constraint conflict on {} {} [{}]: {}", req.getMethod(), req.getRequestURI(),
+                MDC.get("requestId"), ex.getMessage());
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body("Another update happened at the same time — please retry");
     }
 
     @ExceptionHandler(Exception.class)

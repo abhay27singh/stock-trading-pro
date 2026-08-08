@@ -73,15 +73,17 @@ def get_quote(symbol: str, ttl: int = 5):
     # (fast_info.previous_close is often empty for NSE tickers, which made the
     # change always 0%.) Last row = today (partial during market hours),
     # second-to-last row = the previous trading day's close.
-    hist = t.history(period="5d", interval="1d")
+    hist = t.history(period="5d", interval="1d", timeout=10)
     if hist is None or hist.empty:
         return None
     closes = hist["Close"].tolist()
     highs = hist["High"].tolist()
     lows = hist["Low"].tolist()
 
+    # fast_info returns NaN (not None) for delisted/renamed tickers, and NaN would flow
+    # straight through to the stored currentPrice, so test for both.
     last = fi.get("last_price")
-    last = float(last) if last is not None else float(closes[-1])
+    last = float(last) if last is not None and not _is_nan(last) else float(closes[-1])
 
     # previous close = the close before today's row
     prev = float(closes[-2]) if len(closes) >= 2 else float(closes[-1])
@@ -128,7 +130,7 @@ def get_history(symbol: str, period: str = "1d", interval: str = "5m", ttl: int 
         return cached
 
     t = yf.Ticker(ticker)
-    hist = t.history(period=period, interval=interval)
+    hist = t.history(period=period, interval=interval, timeout=10)
     if hist is None or hist.empty:
         return []
 
@@ -138,6 +140,13 @@ def get_history(symbol: str, period: str = "1d", interval: str = "5m", ttl: int 
         # (Asia/Kolkata for .NS). lightweight-charts renders epochs in UTC, so we
         # add the exchange's UTC offset to make candles display IST wall-clock time.
         offset = int(idx.utcoffset().total_seconds()) if idx.utcoffset() else 0
+        # Intraday frames contain gap rows (trading halts, illiquid scrips) whose OHLC
+        # are NaN. json.dumps writes those as the bare token `NaN`, which is not valid
+        # JSON — Jackson on the Java side rejects the whole response and the chart dies.
+        # Skip incomplete candles rather than emit them.
+        if any(v is None or _is_nan(v) for v in
+               (row["Open"], row["High"], row["Low"], row["Close"])):
+            continue
         candles.append({
             "time": int(idx.timestamp()) + offset,
             "open": round(float(row["Open"]), 2),
