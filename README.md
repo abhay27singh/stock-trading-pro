@@ -71,13 +71,22 @@ Each service **owns its own database** — the textbook definition of loose coup
 
 ## ✅ Prerequisites
 
-- **Java 21** (e.g. `brew install openjdk@21`)
+- **Java 17+** — 21 recommended (the services are built and tested on 21)
 - **Node.js 18+** and npm
 - **Python 3.9+**
-- **MySQL 8** running locally (`brew services start mysql`)
-- **Maven** (or use the bundled `./mvnw` wrapper in each service)
+- **MySQL 8** running locally
+- **Maven** — not required, each service bundles the `./mvnw` wrapper
 
-`setup.sh` checks all of these and tells you what is missing.
+`setup.sh` checks all of these and prints the right install command for your platform.
+
+**Platform:** the helper scripts are bash and use `lsof`, so they run on **macOS and
+Linux**. On **Windows use WSL** — or run each service manually (see
+[Running services individually](#️-running-services-individually-optional)), which
+needs no scripts.
+
+**Network:** live prices come from Yahoo Finance via `yfinance`, so the machine needs
+internet access. Yahoo rate-limits or blocks some datacentre/cloud IPs, which is why
+this project is designed to run locally rather than on a free cloud host.
 
 ---
 

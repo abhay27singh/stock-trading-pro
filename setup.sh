@@ -20,46 +20,76 @@ fail=0
 # ---------------------------------------------------------------- prerequisites
 step "Checking prerequisites"
 
-find_jdk21() {
-  # Honour an existing JDK 21 JAVA_HOME first, then the usual Homebrew locations
-  # (Apple Silicon and Intel differ), then macOS java_home, then whatever is on PATH.
-  if [ -n "${JAVA_HOME:-}" ] && "$JAVA_HOME/bin/java" -version 2>&1 | grep -q '"21'; then
-    echo "$JAVA_HOME"; return 0
-  fi
+# Install hints differ by platform — telling a Linux user to run brew is useless.
+if [ "$(uname -s)" = "Darwin" ]; then
+  HINT_JDK="brew install openjdk@21"
+  HINT_NODE="brew install node"
+  HINT_PY="brew install python"
+  HINT_MYSQL="brew install mysql && brew services start mysql"
+else
+  HINT_JDK="sudo apt install openjdk-21-jdk"
+  HINT_NODE="sudo apt install nodejs npm"
+  HINT_PY="sudo apt install python3 python3-venv"
+  HINT_MYSQL="sudo apt install mysql-server && sudo systemctl start mysql"
+fi
+
+java_major() {   # major version of $1/bin/java, or nothing
+  [ -x "$1/bin/java" ] || return 1
+  "$1/bin/java" -version 2>&1 | sed -n 's/.*version "\([0-9]*\).*/\1/p' | head -1
+}
+
+# The poms target Java 17, so 17+ is enough; 21 is what the project is tested on.
+find_jdk() {
+  [ -n "${JAVA_HOME:-}" ] && [ "$(java_major "$JAVA_HOME")" = "21" ] && { echo "$JAVA_HOME"; return 0; }
   for c in /opt/homebrew/opt/openjdk@21 /usr/local/opt/openjdk@21 /usr/lib/jvm/java-21-openjdk; do
     [ -x "$c/bin/java" ] && { echo "$c"; return 0; }
   done
-  if command -v /usr/libexec/java_home >/dev/null 2>&1; then
-    /usr/libexec/java_home -v 21 2>/dev/null && return 0
-  fi
+  command -v /usr/libexec/java_home >/dev/null 2>&1 && /usr/libexec/java_home -v 21 2>/dev/null && return 0
+  [ -n "${JAVA_HOME:-}" ] && [ -n "$(java_major "$JAVA_HOME")" ] && { echo "$JAVA_HOME"; return 0; }
+  command -v java >/dev/null 2>&1 && { dirname "$(dirname "$(command -v java)")"; return 0; }
   return 1
 }
 
-if JDK21="$(find_jdk21)"; then
-  green "  ✓ Java 21 found at $JDK21"
+if JDK="$(find_jdk)" && [ -n "$(java_major "$JDK")" ]; then
+  MAJOR="$(java_major "$JDK")"
+  if [ "$MAJOR" -ge 17 ] 2>/dev/null; then
+    if [ "$MAJOR" = "21" ]; then
+      green "  ✓ Java 21 found at $JDK"
+    else
+      yellow "  ⚠ Java $MAJOR found at $JDK (works — poms target 17 — but 21 is what this is tested on)"
+    fi
+  else
+    red "  ✗ Java $MAJOR is too old; 17+ required (21 recommended):  $HINT_JDK"
+    fail=1
+  fi
 else
-  red   "  ✗ Java 21 not found. Install it:  brew install openjdk@21"
+  red   "  ✗ Java not found. 17+ required, 21 recommended:  $HINT_JDK"
   fail=1
 fi
 
 if command -v node >/dev/null 2>&1; then
   green "  ✓ Node $(node -v)"
 else
-  red   "  ✗ Node.js not found (18+ required):  brew install node"
+  red   "  ✗ Node.js not found (18+ required):  $HINT_NODE"
   fail=1
 fi
 
 if command -v python3 >/dev/null 2>&1; then
   green "  ✓ $(python3 --version)"
 else
-  red   "  ✗ Python 3 not found:  brew install python"
+  red   "  ✗ Python 3 not found:  $HINT_PY"
   fail=1
 fi
 
 if command -v mysql >/dev/null 2>&1; then
   green "  ✓ MySQL client found"
 else
-  red   "  ✗ MySQL not found:  brew install mysql && brew services start mysql"
+  red   "  ✗ MySQL not found:  $HINT_MYSQL"
+  fail=1
+fi
+
+if ! command -v lsof >/dev/null 2>&1; then
+  red   "  ✗ lsof not found — start-all.sh/stop-all.sh need it to manage ports."
   fail=1
 fi
 
@@ -118,7 +148,7 @@ EOF
     green "  ✓ MySQL accepted those credentials"
   else
     yellow "  ⚠ MySQL rejected those credentials, or the server is not running."
-    yellow "     Start it with:  brew services start mysql"
+    yellow "     Start it with:  $HINT_MYSQL"
     yellow "     Then fix DB_PASSWORD in .env — services will not start without it."
   fi
 fi

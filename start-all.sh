@@ -7,6 +7,10 @@ ROOT="$(cd "$(dirname "$0")" && pwd)"
 LOGS="$ROOT/logs"
 mkdir -p "$LOGS"
 
+green() { printf "\033[32m%s\033[0m\n" "$1"; }
+yellow() { printf "\033[33m%s\033[0m\n" "$1"; }
+red() { printf "\033[31m%s\033[0m\n" "$1"; }
+
 # Load secrets from .env (gitignored). No hardcoded fallbacks live in the
 # services anymore, so these must be provided here or the services won't start.
 if [ -f "$ROOT/.env" ]; then
@@ -35,9 +39,17 @@ if [ -n "$placeholder" ]; then
   exit 1
 fi
 
-# Pin JDK 21 for all Spring services. Locations differ by platform (Apple Silicon vs
-# Intel Homebrew vs Linux), so probe rather than hardcode one path.
-if [ -z "${JAVA_HOME:-}" ] || ! "$JAVA_HOME/bin/java" -version 2>&1 | grep -q '"21'; then
+# The poms target Java 17, so any JDK >= 17 works; 21 is what this project is developed
+# and tested against, so prefer it when present. Install locations differ by platform
+# (Apple Silicon vs Intel Homebrew vs Linux), so probe rather than hardcode one path.
+java_major() {   # prints the major version of $1/bin/java, or nothing
+  [ -x "$1/bin/java" ] || return 1
+  "$1/bin/java" -version 2>&1 | sed -n 's/.*version "\([0-9]*\).*/\1/p' | head -1
+}
+
+if [ -n "${JAVA_HOME:-}" ] && [ "$(java_major "$JAVA_HOME")" = "21" ]; then
+  : # already on the preferred JDK
+else
   for candidate in /opt/homebrew/opt/openjdk@21 /usr/local/opt/openjdk@21 /usr/lib/jvm/java-21-openjdk; do
     [ -x "$candidate/bin/java" ] && { export JAVA_HOME="$candidate"; break; }
   done
@@ -45,15 +57,22 @@ fi
 if [ -z "${JAVA_HOME:-}" ] && command -v /usr/libexec/java_home >/dev/null 2>&1; then
   JAVA_HOME="$(/usr/libexec/java_home -v 21 2>/dev/null)" && export JAVA_HOME
 fi
-if [ -z "${JAVA_HOME:-}" ] || [ ! -x "$JAVA_HOME/bin/java" ]; then
-  printf "\033[31m✗ Java 21 not found. Install it (brew install openjdk@21) or set JAVA_HOME.\033[0m\n"
+# Fall back to whatever java is on PATH, as long as it is new enough to build the poms.
+if [ -z "${JAVA_HOME:-}" ] && command -v java >/dev/null 2>&1; then
+  _jv=$(java -version 2>&1 | sed -n 's/.*version "\([0-9]*\).*/\1/p' | head -1)
+  if [ -n "$_jv" ] && [ "$_jv" -ge 17 ] 2>/dev/null; then
+    JAVA_HOME="$(dirname "$(dirname "$(command -v java)")")"; export JAVA_HOME
+    yellow "⚠ Using Java $_jv from PATH (this project is tested on 21)."
+  fi
+fi
+_major=$(java_major "${JAVA_HOME:-}" 2>/dev/null)
+if [ -z "$_major" ] || [ "$_major" -lt 17 ] 2>/dev/null; then
+  printf "\033[31m✗ Java 17+ not found (21 recommended). Install a JDK or set JAVA_HOME.\033[0m\n"
+  printf "\033[31m   macOS: brew install openjdk@21   ·   Debian/Ubuntu: sudo apt install openjdk-21-jdk\033[0m\n"
   exit 1
 fi
 export PATH="$JAVA_HOME/bin:$PATH"
 
-green() { printf "\033[32m%s\033[0m\n" "$1"; }
-yellow() { printf "\033[33m%s\033[0m\n" "$1"; }
-red() { printf "\033[31m%s\033[0m\n" "$1"; }
 
 # Wait until something is listening on a port (max ~90s)
 # -sTCP:LISTEN throughout: a bare `lsof -ti :PORT` also matches processes holding a
