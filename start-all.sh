@@ -56,17 +56,21 @@ yellow() { printf "\033[33m%s\033[0m\n" "$1"; }
 red() { printf "\033[31m%s\033[0m\n" "$1"; }
 
 # Wait until something is listening on a port (max ~90s)
+# -sTCP:LISTEN throughout: a bare `lsof -ti :PORT` also matches processes holding a
+# CLIENT connection to that port, which would make wait_port report a service "up"
+# because something merely connected to it, and make free_port kill unrelated services
+# (Market-Data holds an outbound connection to Python on 5001).
 wait_port() {
   local port=$1 name=$2
   for i in $(seq 1 45); do
-    if lsof -ti :"$port" >/dev/null 2>&1; then green "  ✓ $name is up on :$port"; return 0; fi
+    if lsof -ti :"$port" -sTCP:LISTEN >/dev/null 2>&1; then green "  ✓ $name is up on :$port"; return 0; fi
     sleep 2
   done
   red "  ✗ $name did NOT come up on :$port — check $LOGS"
   return 1
 }
 
-free_port() { lsof -ti :"$1" | xargs kill -9 2>/dev/null; }
+free_port() { lsof -ti :"$1" -sTCP:LISTEN 2>/dev/null | xargs kill -9 2>/dev/null; }
 
 echo "== Stock Trading Pro — starting all services =="
 
