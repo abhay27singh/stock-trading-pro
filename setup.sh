@@ -111,11 +111,15 @@ EOF
   chmod 600 "$ROOT/.env"
   green "  ✓ .env created (JWT + internal key generated randomly)"
 
-  if mysqladmin ping -u"$DB_USER" -p"$DB_PASS" --silent 2>/dev/null; then
+  # Run a real query: `mysqladmin ping` exits 0 even when the password is wrong,
+  # because the server did answer — it proves reachability, not authentication.
+  # MYSQL_PWD keeps the password off the process list.
+  if MYSQL_PWD="$DB_PASS" mysql -u"$DB_USER" -e "SELECT 1" >/dev/null 2>&1; then
     green "  ✓ MySQL accepted those credentials"
   else
-    yellow "  ⚠ Could not reach MySQL with those credentials. Check it is running:"
-    yellow "     brew services start mysql"
+    yellow "  ⚠ MySQL rejected those credentials, or the server is not running."
+    yellow "     Start it with:  brew services start mysql"
+    yellow "     Then fix DB_PASSWORD in .env — services will not start without it."
   fi
 fi
 

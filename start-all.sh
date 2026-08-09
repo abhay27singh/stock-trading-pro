@@ -82,8 +82,10 @@ if [ ! -d "$ROOT/frontend/node_modules" ]; then
 fi
 
 # 0) MySQL sanity check
-if ! mysqladmin ping -u"${DB_USERNAME:-root}" -p"${DB_PASSWORD}" --silent 2>/dev/null; then
-  yellow "⚠ MySQL not reachable with the configured DB_USERNAME/DB_PASSWORD — make sure MySQL is running first."
+# A real query, not `mysqladmin ping` — ping exits 0 even on a wrong password, so it
+# cannot tell "server up" from "credentials valid". MYSQL_PWD keeps it off the ps list.
+if ! MYSQL_PWD="${DB_PASSWORD}" mysql -u"${DB_USERNAME:-root}" -e "SELECT 1" >/dev/null 2>&1; then
+  yellow "⚠ MySQL rejected DB_USERNAME/DB_PASSWORD from .env, or is not running — services will fail to start."
 fi
 
 # Free any stale processes on our ports
