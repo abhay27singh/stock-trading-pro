@@ -92,7 +92,7 @@ const Login = () => {
           </form>
 
           <Typography align="center" sx={{ color: COLORS.textDim }}>
-            Don't have an account?{' '}
+            Don't you have an account?{' '}
             <Link to="/register" style={{ color: COLORS.accent, fontWeight: 700 }}>
               Register here
             </Link>
