@@ -322,8 +322,12 @@ engine, the market data pipeline and the interface are all my own work.
 
 ## Licence
 
-No licence has been chosen yet, so default copyright applies and all rights are reserved.
-Add a `LICENSE` file if you want to permit reuse.
+Released under the [MIT Licence](LICENSE). You are free to use, modify and distribute
+this code, including commercially, provided the copyright notice is retained. The
+software is provided without warranty.
+
+The licence covers the source code only. It does not alter the disclaimer below: this
+remains an educational simulator and not financial advice.
 
 ---
 
