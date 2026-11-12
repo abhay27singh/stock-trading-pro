@@ -41,8 +41,8 @@ const Navbar = () => {
       onClick={() => navigate(path)}
       sx={{
         color: isActive(path) ? COLORS.accent : COLORS.textDim,
-        bgcolor: isActive(path) ? 'rgba(34,197,94,0.10)' : 'transparent',
-        border: `1px solid ${isActive(path) ? 'rgba(34,197,94,0.4)' : 'transparent'}`,
+        bgcolor: isActive(path) ? 'rgba(59,130,246,0.10)' : 'transparent',
+        border: `1px solid ${isActive(path) ? 'rgba(59,130,246,0.4)' : 'transparent'}`,
         borderRadius: 2,
         px: 1.6,
         '&:hover': { color: COLORS.text, bgcolor: 'rgba(255,255,255,0.04)' },
@@ -78,18 +78,19 @@ const Navbar = () => {
           {isAdmin && navItem('/admin', 'Admin', AdminPanelSettings)}
         </Box>
 
-        <Box display="flex" alignItems="center" gap={2}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
           <Chip
             component={motion.div}
             key={navBalance}
             initial={{ scale: 0.9, opacity: 0.6 }}
             animate={{ scale: 1, opacity: 1 }}
             label={`₹${Number(navBalance).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`}
+            className="num"
             sx={{
-              bgcolor: 'rgba(34,197,94,0.10)',
+              bgcolor: COLORS.accentDim,
               color: COLORS.accent,
-              border: `1px solid rgba(34,197,94,0.35)`,
-              fontWeight: 800,
+              border: `1px solid ${COLORS.accent}`,
+              fontWeight: 600,
             }}
           />
           <Typography variant="body2" sx={{ color: COLORS.textDim }}>{user?.name}</Typography>

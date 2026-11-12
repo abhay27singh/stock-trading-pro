@@ -24,7 +24,11 @@ const Login = () => {
       await login(email, password);
       navigate('/dashboard');
     } catch (err) {
-      setError('Invalid email or password!');
+      // A throttled request is not a wrong password. Saying so would send the user
+      // off changing a password that was fine, so name the real reason.
+      setError(err.response?.status === 429
+        ? 'Too many sign-in attempts. Please wait a few minutes and try again.'
+        : 'Invalid email or password.');
     } finally {
       setLoading(false);
     }
@@ -43,7 +47,7 @@ const Login = () => {
     >
       {/* drifting glow blobs */}
       <Box className="blob" sx={{ width: 320, height: 320, top: '-60px', left: '-40px', background: COLORS.up, animation: 'floatBlob 16s ease-in-out infinite' }} />
-      <Box className="blob" sx={{ width: 280, height: 280, bottom: '-80px', right: '-30px', background: '#06b6d4', animation: 'floatBlob 20s ease-in-out infinite reverse' }} />
+      <Box className="blob" sx={{ width: 280, height: 280, bottom: '-80px', right: '-30px', background: COLORS.info, animation: 'floatBlob 20s ease-in-out infinite reverse' }} />
 
       <Container maxWidth="sm" sx={{ position: 'relative', zIndex: 1 }}>
         <Paper

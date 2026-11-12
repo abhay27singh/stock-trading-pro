@@ -30,8 +30,8 @@ const StatCard = ({ icon, label, children, accent, index, action }) => (
       },
     }}
   >
-    <Box display="flex" justifyContent="space-between" alignItems="flex-start" sx={{ height: '100%' }}>
-      <Box display="flex" alignItems="center" gap={2}>
+    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', height: '100%' }}>
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
         <Box sx={{
           width: 48, height: 48, borderRadius: 2, flexShrink: 0,
           display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -41,7 +41,7 @@ const StatCard = ({ icon, label, children, accent, index, action }) => (
         </Box>
         <Box>
           <Typography variant="body2" sx={{ color: COLORS.textDim }}>{label}</Typography>
-          <Typography variant="h5" fontWeight={800}>{children}</Typography>
+          <Typography variant="h5" fontWeight={700} className="num">{children}</Typography>
         </Box>
       </Box>
       {action && <Box sx={{ flexShrink: 0 }}>{action}</Box>}
@@ -95,7 +95,7 @@ const Dashboard = () => {
     }, 0);
   };
 
-  if (loading) return <Box display="flex" justifyContent="center" mt={10}><CircularProgress size={60} /></Box>;
+  if (loading) return <Box sx={{ display: 'flex', justifyContent: 'center', mt: 10 }}><CircularProgress size={60} /></Box>;
 
   const hour = new Date().getHours();
   const greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
@@ -131,13 +131,13 @@ const Dashboard = () => {
         </Grid>
 
         <Grid size={{ xs: 12, md: 4 }}>
-          <StatCard index={1} icon={<TrendingUp />} label="Portfolio Value" accent="#06b6d4">
+          <StatCard index={1} icon={<TrendingUp />} label="Portfolio Value" accent={COLORS.info}>
             <AnimatedPrice value={calculatePortfolioValue()} />
           </StatCard>
         </Grid>
 
         <Grid size={{ xs: 12, md: 4 }}>
-          <StatCard index={2} icon={<Inventory2 />} label="Stocks Owned" accent="#8b5cf6">
+          <StatCard index={2} icon={<Inventory2 />} label="Stocks Owned" accent={COLORS.warn}>
             {portfolio.length} Stocks
           </StatCard>
         </Grid>
@@ -150,7 +150,14 @@ const Dashboard = () => {
         transition={{ delay: 0.25, duration: 0.4 }}
         sx={{ p: 3 }}
       >
-        <Typography variant="h6" fontWeight={800} sx={{ mb: 2 }}>📊 My Portfolio</Typography>
+        <Typography
+          variant="h6"
+          fontWeight={800}
+          sx={{ mb: 2, display: 'flex', alignItems: 'center', gap: 1 }}
+        >
+          <Inventory2 fontSize="inherit" aria-hidden="true" />
+          My Portfolio
+        </Typography>
         {portfolio.length === 0 ? (
           <Typography color="text.secondary">No stocks owned yet. Head to Markets and start trading!</Typography>
         ) : (
@@ -176,7 +183,7 @@ const Dashboard = () => {
                       borderRadius: 2,
                     }}
                   >
-                    <Box display="flex" justifyContent="space-between" alignItems="center">
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                       <Typography fontWeight={800}>
                         {item.symbol}
                       </Typography>

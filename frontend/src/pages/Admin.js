@@ -24,8 +24,8 @@ const StatsTab = ({ stats }) => {
 
   const cards = [
     { label: 'Total Users', value: stats.totalUsers, color: COLORS.accent, icon: <People /> },
-    { label: 'Total Stocks', value: stats.totalStocks, color: '#06b6d4', icon: <ShowChart /> },
-    { label: 'Total Trades', value: stats.totalTransactions, color: '#8b5cf6', icon: <TrendingUp /> },
+    { label: 'Total Stocks', value: stats.totalStocks, color: COLORS.info, icon: <ShowChart /> },
+    { label: 'Total Trades', value: stats.totalTransactions, color: COLORS.warn, icon: <TrendingUp /> },
     { label: 'Trading Volume', value: `₹${Number(stats.totalVolume || 0).toLocaleString('en-IN')}`, color: '#f59e0b', icon: <BarChart /> },
   ];
 
@@ -51,7 +51,7 @@ const StatsTab = ({ stats }) => {
               },
             }}
           >
-            <Box display="flex" alignItems="center" gap={1.5}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
               <Box sx={{
                 width: 44, height: 44, borderRadius: 2, color: card.color,
                 bgcolor: `${card.color}1f`, display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -68,7 +68,7 @@ const StatsTab = ({ stats }) => {
       <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
         <Paper elevation={2} sx={{ p: 3, borderRadius: 3, flex: '1 1 300px' }}>
           <Typography variant="h6" fontWeight="bold" sx={{ mb: 2 }}>Trade Breakdown</Typography>
-          <Box display="flex" gap={3}>
+          <Box sx={{ display: 'flex', gap: 3 }}>
             <Box>
               <Typography variant="body2" color="text.secondary">Buy Orders</Typography>
               <Typography variant="h4" fontWeight="bold" color="success.main">{stats.buyCount || 0}</Typography>
@@ -82,13 +82,13 @@ const StatsTab = ({ stats }) => {
 
         <Paper elevation={2} sx={{ p: 3, borderRadius: 3, flex: '1 1 300px' }}>
           <Typography variant="h6" fontWeight="bold" sx={{ mb: 2 }}>Platform Overview</Typography>
-          <Box display="flex" justifyContent="space-between" sx={{ mb: 1 }}>
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
             <Typography variant="body2" color="text.secondary">Total User Balances</Typography>
             <Typography variant="body2" fontWeight="bold">
               ₹{Number(stats.totalUserBalance || 0).toLocaleString('en-IN')}
             </Typography>
           </Box>
-          <Box display="flex" justifyContent="space-between">
+          <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
             <Typography variant="body2" color="text.secondary">Most Traded Stock</Typography>
             <Chip label={stats.mostTradedStock || 'N/A'} size="small" color="primary" />
           </Box>
@@ -268,7 +268,7 @@ const StocksTab = ({ stocks, onRefresh, showSnackbar }) => {
         ok++;
       } catch { fail++; }
     }
-    showSnackbar(`${ok} stock(s) added${fail ? `, ${fail} failed` : ''} — live prices load shortly`,
+    showSnackbar(`${ok} stock(s) added${fail ? `, ${fail} failed` : ''}. Live prices load shortly.`,
       fail ? 'warning' : 'success');
     setPicked([]);
     setAddOpen(false);
@@ -302,7 +302,7 @@ const StocksTab = ({ stocks, onRefresh, showSnackbar }) => {
 
   return (
     <>
-      <Box display="flex" justifyContent="space-between" alignItems="center" sx={{ mb: 2 }}>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
         <Typography variant="h6" fontWeight="bold">Manage Stocks ({stocks.length})</Typography>
         <Button variant="contained" startIcon={<Add />} onClick={() => {
           setForm({ symbol: '', companyName: '', currentPrice: '' });
@@ -360,7 +360,7 @@ const StocksTab = ({ stocks, onRefresh, showSnackbar }) => {
       <Dialog open={addOpen} onClose={() => setAddOpen(false)} maxWidth="sm" fullWidth>
         <DialogTitle sx={{ fontWeight: 800 }}>Add NSE Stocks</DialogTitle>
         <DialogContent>
-          <Box sx={{ mb: 2, p: 1.5, borderRadius: 2, bgcolor: 'rgba(34,197,94,0.08)', border: `1px solid ${COLORS.border}` }}>
+          <Box sx={{ mb: 2, p: 1.5, borderRadius: 2, bgcolor: 'rgba(59,130,246,0.08)', border: `1px solid ${COLORS.border}` }}>
             <Typography variant="caption" sx={{ color: COLORS.textDim }}>
               Pick one or more NSE stocks and add them in one go. Live prices load from yfinance
               within ~10s. Not in the list? Just type the NSE symbol and press Enter.
@@ -372,7 +372,7 @@ const StocksTab = ({ stocks, onRefresh, showSnackbar }) => {
             options={available}
             value={picked}
             onChange={(e, v) => setPicked(v)}
-            getOptionLabel={(o) => (typeof o === 'string' ? o : `${o.symbol} — ${o.name}`)}
+            getOptionLabel={(o) => (typeof o === 'string' ? o : `${o.symbol}: ${o.name}`)}
             isOptionEqualToValue={(o, v) => (o.symbol || o) === (v.symbol || v)}
             renderInput={(params) => (
               <TextField {...params} label="Search NSE stocks" placeholder="e.g. MARUTI, AXISBANK…" autoFocus />
@@ -443,7 +443,7 @@ const Admin = () => {
 
   if (loading) {
     return (
-      <Box display="flex" justifyContent="center" mt={10}>
+      <Box sx={{ display: 'flex', justifyContent: 'center', mt: 10 }}>
         <CircularProgress size={60} />
       </Box>
     );
@@ -451,7 +451,7 @@ const Admin = () => {
 
   return (
     <Container maxWidth="xl" sx={{ mt: 3, mb: 4 }}>
-      <Box display="flex" justifyContent="space-between" alignItems="center" sx={{ mb: 3 }}>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
         <Typography variant="h4" fontWeight="bold">Admin Dashboard</Typography>
         <Button variant="outlined" onClick={fetchData}>Refresh</Button>
       </Box>

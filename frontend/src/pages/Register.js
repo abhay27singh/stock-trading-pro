@@ -25,7 +25,9 @@ const Register = () => {
       await register(name, email, password);
       navigate('/dashboard');
     } catch (err) {
-      setError('Registration failed! Email may already exist.');
+      setError(err.response?.status === 429
+        ? 'Too many sign-up attempts. Please wait a few minutes and try again.'
+        : 'Registration failed. That email may already be registered.');
     } finally {
       setLoading(false);
     }
@@ -43,7 +45,7 @@ const Register = () => {
       }}
     >
       <Box className="blob" sx={{ width: 320, height: 320, top: '-60px', right: '-40px', background: COLORS.up, animation: 'floatBlob 16s ease-in-out infinite' }} />
-      <Box className="blob" sx={{ width: 280, height: 280, bottom: '-80px', left: '-30px', background: '#8b5cf6', animation: 'floatBlob 22s ease-in-out infinite reverse' }} />
+      <Box className="blob" sx={{ width: 280, height: 280, bottom: '-80px', left: '-30px', background: COLORS.info, animation: 'floatBlob 22s ease-in-out infinite reverse' }} />
 
       <Container maxWidth="sm" sx={{ position: 'relative', zIndex: 1 }}>
         <Paper

@@ -52,10 +52,10 @@ const AddFunds = ({ onSuccess }) => {
       <IconButton
         onClick={() => setOpen(true)}
         sx={{
-          bgcolor: 'rgba(34,197,94,0.15)',
-          color: '#22c55e',
-          border: '1px solid rgba(34,197,94,0.4)',
-          '&:hover': { bgcolor: 'rgba(34,197,94,0.28)' },
+          bgcolor: 'rgba(59,130,246,0.15)',
+          color: COLORS.accent,
+          border: `1px solid ${COLORS.accent}`,
+          '&:hover': { bgcolor: 'rgba(59,130,246,0.28)' },
         }}
       >
         <Add />
@@ -69,9 +69,9 @@ const AddFunds = ({ onSuccess }) => {
             display: 'flex', alignItems: 'center', gap: 1, mb: 2, p: 1.2, borderRadius: 2,
             bgcolor: 'rgba(245,158,11,0.12)', border: '1px solid rgba(245,158,11,0.35)',
           }}>
-            <Lock sx={{ fontSize: 18, color: '#f59e0b' }} />
-            <Typography variant="caption" sx={{ color: '#f59e0b', fontWeight: 700 }}>
-              Demo / Test mode — no real money is charged
+            <Lock sx={{ fontSize: 18, color: COLORS.warn }} />
+            <Typography variant="caption" sx={{ color: COLORS.warn, fontWeight: 700 }}>
+              Demo / Test mode: no real money is charged
             </Typography>
           </Box>
 
@@ -80,7 +80,7 @@ const AddFunds = ({ onSuccess }) => {
           <TextField
             autoFocus fullWidth label="Amount (₹)" type="number"
             value={amount} onChange={(e) => setAmount(e.target.value)}
-            inputProps={{ min: 1, max: 1000000 }}
+            slotProps={{ htmlInput: { min: 1, max: 1000000 } }}
           />
 
           <Stack direction="row" spacing={1} sx={{ mt: 1.5, mb: 2.5, flexWrap: 'wrap', gap: 1 }}>
@@ -91,7 +91,7 @@ const AddFunds = ({ onSuccess }) => {
                 onClick={() => setAmount(String(q))}
                 sx={{
                   fontWeight: 700, cursor: 'pointer',
-                  bgcolor: Number(amount) === q ? 'rgba(34,197,94,0.18)' : COLORS.bg,
+                  bgcolor: Number(amount) === q ? 'rgba(59,130,246,0.18)' : COLORS.bg,
                   color: Number(amount) === q ? COLORS.accent : COLORS.textDim,
                   border: `1px solid ${Number(amount) === q ? COLORS.accent : COLORS.border}`,
                 }}
@@ -114,7 +114,7 @@ const AddFunds = ({ onSuccess }) => {
                   sx={{
                     p: 1.5, borderRadius: 2, cursor: 'pointer',
                     display: 'flex', alignItems: 'center', gap: 1.2,
-                    bgcolor: selected ? 'rgba(34,197,94,0.10)' : COLORS.bg,
+                    bgcolor: selected ? 'rgba(59,130,246,0.10)' : COLORS.bg,
                     border: `1px solid ${selected ? COLORS.accent : COLORS.border}`,
                     transition: 'all .15s ease',
                   }}

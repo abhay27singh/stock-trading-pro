@@ -168,7 +168,7 @@ const Stocks = () => {
 
   if (loading) {
     return (
-      <Box display="flex" justifyContent="center" mt={10}>
+      <Box sx={{ display: 'flex', justifyContent: 'center', mt: 10 }}>
         <CircularProgress size={60} />
       </Box>
     );
@@ -188,9 +188,9 @@ const Stocks = () => {
             label={`NSE ${marketStatus.status}`}
             sx={{
               fontWeight: 'bold',
-              bgcolor: marketStatus.isOpen ? 'rgba(34,197,94,0.15)' : 'rgba(239,68,68,0.12)',
-              color: marketStatus.isOpen ? '#16a34a' : '#dc2626',
-              border: `1px solid ${marketStatus.isOpen ? '#22c55e' : '#ef4444'}`,
+              bgcolor: marketStatus.isOpen ? 'rgba(16,185,129,0.15)' : 'rgba(239,68,68,0.12)',
+              color: marketStatus.isOpen ? COLORS.up : COLORS.down,
+              border: `1px solid ${marketStatus.isOpen ? COLORS.up : COLORS.down}`,
             }}
           />
         )}
@@ -217,12 +217,12 @@ const Stocks = () => {
                 flex: '1 1 160px',
                 maxWidth: 220,
                 border: `1px solid ${isSelected ? COLORS.accent : COLORS.border}`,
-                boxShadow: isSelected ? `0 0 0 1px ${COLORS.accent}, 0 8px 30px rgba(34,197,94,0.15)` : 'none',
-                bgcolor: isSelected ? 'rgba(34,197,94,0.06)' : COLORS.surface,
-                '&:hover': { borderColor: 'rgba(34,197,94,0.5)' },
+                boxShadow: isSelected ? `0 0 0 1px ${COLORS.accent}, 0 8px 30px rgba(59,130,246,0.15)` : 'none',
+                bgcolor: isSelected ? 'rgba(59,130,246,0.06)' : COLORS.surface,
+                '&:hover': { borderColor: 'rgba(59,130,246,0.5)' },
               }}
             >
-              <Box display="flex" justifyContent="space-between" alignItems="center">
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <Typography variant="subtitle1" fontWeight={800}>
                   {stock.symbol.replace('.BSE', '')}
                 </Typography>
@@ -274,7 +274,7 @@ const Stocks = () => {
                     {selectedStock.companyName}
                   </Typography>
                 </Typography>
-                <Box display="flex" alignItems="center" gap={1.5} sx={{ mt: 0.5 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mt: 0.5 }}>
                   <Typography variant="h4" fontWeight={800} className="glow-green">
                     <AnimatedPrice value={selectedStock.currentPrice} />
                   </Typography>
@@ -292,14 +292,13 @@ const Stocks = () => {
                 {Object.keys(RANGES).map((r) => (
                   <Button
                     key={r}
-                    size="small"
+                    size="micro"
                     onClick={() => setRange(r)}
-                    sx={{
-                      minWidth: 40, px: 1, fontWeight: 800,
-                      color: range === r ? COLORS.accent : COLORS.textDim,
-                      bgcolor: range === r ? 'rgba(34,197,94,0.12)' : 'transparent',
-                      border: `1px solid ${range === r ? 'rgba(34,197,94,0.4)' : COLORS.border}`,
-                    }}
+                    sx={range === r ? {
+                      color: COLORS.accent,
+                      bgcolor: COLORS.accentDim,
+                      borderColor: COLORS.accent,
+                    } : undefined}
                   >
                     {r}
                   </Button>
@@ -310,11 +309,11 @@ const Stocks = () => {
             {/* Chart */}
             <Box sx={{ bgcolor: '#131722', p: 0 }}>
               {chartLoading ? (
-                <Box display="flex" justifyContent="center" alignItems="center" height={420}>
-                  <CircularProgress sx={{ color: '#22c55e' }} />
+                <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: 420 }}>
+                  <CircularProgress sx={{ color: COLORS.accent }} />
                 </Box>
               ) : !history || history.length === 0 ? (
-                <Box display="flex" justifyContent="center" alignItems="center" height={420}>
+                <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: 420 }}>
                   <Typography color="#9ca3af">No chart data available</Typography>
                 </Box>
               ) : (
@@ -337,7 +336,7 @@ const Stocks = () => {
                 overflow: 'hidden',
                 '&::before': {
                   content: '""', position: 'absolute', top: 0, left: 0, right: 0, height: '3px',
-                  background: `linear-gradient(90deg, ${COLORS.up}, #06b6d4)`,
+                  background: `linear-gradient(90deg, ${COLORS.up}, ${COLORS.info})`,
                 },
               }}
             >
@@ -350,7 +349,7 @@ const Stocks = () => {
                 type="number"
                 value={quantity}
                 onChange={(e) => setQuantity(Math.max(1, Number(e.target.value)))}
-                inputProps={{ min: 1 }}
+                slotProps={{ htmlInput: { min: 1 } }}
                 sx={{ mb: 2 }}
               />
               <Box sx={{
@@ -363,30 +362,20 @@ const Stocks = () => {
                   ₹{(selectedStock.currentPrice * quantity).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </Typography>
               </Box>
-              <Box display="flex" gap={1.5}>
+              <Box sx={{ display: 'flex', gap: 1.5 }}>
                 <Button
-                  fullWidth variant="contained"
+                  fullWidth variant="buy"
                   component={motion.button} whileTap={{ scale: 0.96 }}
                   onClick={() => handleTrade('BUY')}
-                  sx={{
-                    py: 1.3, fontWeight: 800, fontSize: '1rem',
-                    bgcolor: COLORS.up, color: '#04210f',
-                    boxShadow: '0 4px 18px rgba(34,197,94,0.4)',
-                    '&:hover': { bgcolor: '#16a34a', boxShadow: '0 6px 24px rgba(34,197,94,0.6)' },
-                  }}
+                  sx={{ py: 1.1 }}
                 >
                   BUY
                 </Button>
                 <Button
-                  fullWidth variant="contained"
+                  fullWidth variant="sell"
                   component={motion.button} whileTap={{ scale: 0.96 }}
                   onClick={() => handleTrade('SELL')}
-                  sx={{
-                    py: 1.3, fontWeight: 800, fontSize: '1rem',
-                    bgcolor: COLORS.down, color: '#fff',
-                    boxShadow: '0 4px 18px rgba(239,68,68,0.4)',
-                    '&:hover': { bgcolor: '#dc2626', boxShadow: '0 6px 24px rgba(239,68,68,0.6)' },
-                  }}
+                  sx={{ py: 1.1 }}
                 >
                   SELL
                 </Button>
@@ -416,7 +405,7 @@ const Stocks = () => {
                         fontWeight: 'bold',
                         fontSize: '0.9rem',
                         bgcolor: prediction.trend.includes('Bullish')
-                          ? 'rgba(34,197,94,0.2)'
+                          ? 'rgba(16,185,129,0.2)'
                           : prediction.trend.includes('Bearish')
                             ? 'rgba(239,68,68,0.2)'
                             : 'rgba(234,179,8,0.2)',
@@ -437,10 +426,10 @@ const Stocks = () => {
                       sx={{
                         fontWeight: 'bold',
                         bgcolor: prediction.signal === 'BUY'
-                          ? '#22c55e'
+                          ? COLORS.up
                           : prediction.signal === 'SELL'
-                            ? '#ef4444'
-                            : '#eab308',
+                            ? COLORS.down
+                            : COLORS.warn,
                         color: '#fff',
                       }}
                     />
@@ -448,14 +437,14 @@ const Stocks = () => {
 
                   <Box sx={{ mb: 2 }}>
                     <Typography variant="body2" sx={{ color: '#9ca3af', mb: 0.5 }}>Confidence</Typography>
-                    <Box display="flex" alignItems="center" gap={1}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                       <Box sx={{ flex: 1, height: 6, bgcolor: 'rgba(255,255,255,0.1)', borderRadius: 3 }}>
                         <Box
                           sx={{
                             width: `${prediction.confidence}%`,
                             height: '100%',
                             borderRadius: 3,
-                            bgcolor: Number(prediction.confidence) > 70 ? '#22c55e' : '#eab308',
+                            bgcolor: Number(prediction.confidence) > 70 ? COLORS.up : COLORS.warn,
                           }}
                         />
                       </Box>
@@ -463,7 +452,7 @@ const Stocks = () => {
                     </Box>
                   </Box>
 
-                  <Box display="flex" gap={2}>
+                  <Box sx={{ display: 'flex', gap: 2 }}>
                     <Box>
                       <Typography variant="caption" sx={{ color: '#9ca3af' }}>Overall</Typography>
                       <Typography
@@ -510,13 +499,13 @@ const Stocks = () => {
               <Typography variant="h6" fontWeight={800} sx={{ mb: 2 }}>
                 Stock Info
               </Typography>
-              <Box display="flex" justifyContent="space-between" sx={{ mb: 1 }}>
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
                 <Typography variant="body2" color="text.secondary">Previous Close</Typography>
                 <Typography variant="body2" fontWeight="bold">
                   ₹{Number(selectedStock.previousPrice).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                 </Typography>
               </Box>
-              <Box display="flex" justifyContent="space-between" sx={{ mb: 1 }}>
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
                 <Typography variant="body2" color="text.secondary">Change</Typography>
                 <Typography
                   variant="body2"
@@ -528,13 +517,13 @@ const Stocks = () => {
               </Box>
               {history.length > 0 && (
                 <>
-                  <Box display="flex" justifyContent="space-between" sx={{ mb: 1 }}>
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
                     <Typography variant="body2" color="text.secondary">Day High</Typography>
                     <Typography variant="body2" fontWeight="bold">
                       ₹{Math.max(...history.map(h => h.high ?? h.close ?? h.price)).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                     </Typography>
                   </Box>
-                  <Box display="flex" justifyContent="space-between">
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
                     <Typography variant="body2" color="text.secondary">Day Low</Typography>
                     <Typography variant="body2" fontWeight="bold">
                       ₹{Math.min(...history.map(h => h.low ?? h.close ?? h.price)).toLocaleString('en-IN', { minimumFractionDigits: 2 })}

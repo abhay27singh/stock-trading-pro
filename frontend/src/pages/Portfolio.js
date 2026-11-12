@@ -36,7 +36,7 @@ const Portfolio = () => {
   };
 
   if (loading) return (
-    <Box display="flex" justifyContent="center" mt={10}>
+    <Box sx={{ display: 'flex', justifyContent: 'center', mt: 10 }}>
       <CircularProgress size={60} />
     </Box>
   );
@@ -55,10 +55,10 @@ const Portfolio = () => {
   const totalUp = totalPL >= 0;
 
   const SectionHeader = ({ icon, title }) => (
-    <Box display="flex" alignItems="center" gap={1.2} sx={{ mb: 2 }}>
+    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.2, mb: 2 }}>
       <Box sx={{
         width: 36, height: 36, borderRadius: 1.5, color: COLORS.accent,
-        bgcolor: 'rgba(34,197,94,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center',
+        bgcolor: 'rgba(59,130,246,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center',
       }}>{icon}</Box>
       <Typography variant="h6" fontWeight={800}>{title}</Typography>
     </Box>
@@ -66,8 +66,12 @@ const Portfolio = () => {
 
   return (
     <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
-      <Typography variant="h4" sx={{ mb: 3, fontWeight: 800 }}>
-        💼 My <span style={{ color: COLORS.accent }}>Portfolio</span>
+      <Typography
+        variant="h4"
+        sx={{ mb: 3, fontWeight: 800, display: 'flex', alignItems: 'center', gap: 1.5 }}
+      >
+        <AccountBalanceWallet fontSize="inherit" aria-hidden="true" />
+        My <span style={{ color: COLORS.accent }}>Portfolio</span>
       </Typography>
 
       {/* Summary bar */}
@@ -78,7 +82,7 @@ const Portfolio = () => {
       >
         {[
           { label: 'Invested', value: totals.invested, color: COLORS.text },
-          { label: 'Current Value', value: totals.current, color: '#06b6d4' },
+          { label: 'Current Value', value: totals.current, color: COLORS.info },
           { label: 'Total P&L', value: totalPL, color: totalUp ? COLORS.up : COLORS.down, pct: totalPLpct, signed: true },
         ].map((s) => (
           <Box key={s.label}>
@@ -104,7 +108,7 @@ const Portfolio = () => {
           >
             <SectionHeader icon={<AccountBalanceWallet fontSize="small" />} title="Current Holdings" />
             {portfolio.length === 0 ? (
-              <Typography color="text.secondary">No holdings yet — go buy some stocks!</Typography>
+              <Typography color="text.secondary">No holdings yet. Go buy some stocks.</Typography>
             ) : (
               portfolio.map((item, i) => {
                 const stock = stocks.find(s => s.symbol === item.symbol);
@@ -124,11 +128,11 @@ const Portfolio = () => {
                       borderLeft: `3px solid ${isProfit ? COLORS.up : COLORS.down}`,
                     }}
                   >
-                    <Box display="flex" justifyContent="space-between" alignItems="center">
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                       <Typography fontWeight={800} variant="h6">
                         {item.symbol}
                       </Typography>
-                      <Box display="flex" alignItems="center" gap={1}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                         {isProfit ? <TrendingUp sx={{ color: COLORS.up }} /> : <TrendingDown sx={{ color: COLORS.down }} />}
                         <Chip
                           label={`${isProfit ? '+' : ''}${profitPct.toFixed(2)}%`}
@@ -140,7 +144,7 @@ const Portfolio = () => {
                     <Typography variant="body2" color="text.secondary">
                       {item.quantity} shares • Avg: ₹{Number(item.avgBuyPrice).toLocaleString('en-IN')}
                     </Typography>
-                    <Box display="flex" justifyContent="space-between" sx={{ mt: 1 }}>
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 1 }}>
                       <Typography variant="body2">
                         Invested: ₹{Number(invested).toLocaleString('en-IN')}
                       </Typography>
@@ -178,7 +182,7 @@ const Portfolio = () => {
                       borderLeft: `3px solid ${isBuy ? COLORS.up : COLORS.down}`,
                     }}
                   >
-                    <Box display="flex" justifyContent="space-between" alignItems="center">
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                       <Typography fontWeight={800}>
                         {t.symbol}
                       </Typography>
@@ -191,7 +195,7 @@ const Portfolio = () => {
                     <Typography variant="body2" color="text.secondary">
                       {t.quantity} shares @ ₹{t.price}
                     </Typography>
-                    <Box display="flex" justifyContent="space-between" alignItems="center" sx={{ mt: 0.5 }}>
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mt: 0.5 }}>
                       <Typography variant="body2" fontWeight={800}>
                         Total: ₹{Number(t.total).toLocaleString('en-IN')}
                       </Typography>

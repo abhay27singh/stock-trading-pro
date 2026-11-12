@@ -91,7 +91,7 @@ const Options = () => {
         <Typography variant="h4" fontWeight={800}>
           Options <span style={{ color: COLORS.accent }}>Desk</span>
         </Typography>
-        <Chip size="small" label="Black-Scholes priced" sx={{ bgcolor: 'rgba(34,197,94,0.12)', color: COLORS.accent, fontWeight: 700 }} />
+        <Chip size="small" label="Black-Scholes priced" sx={{ bgcolor: 'rgba(59,130,246,0.12)', color: COLORS.accent, fontWeight: 700 }} />
       </Box>
       <Typography variant="body2" sx={{ color: COLORS.textDim, mb: 3 }}>
         Live Call/Put pricing via Black-Scholes (cross-checked with Binomial &amp; Monte Carlo). Premiums use real spot + historical volatility.
@@ -121,7 +121,7 @@ const Options = () => {
         {/* Chain table */}
         <Paper sx={{ flex: '1 1 560px', p: 2, overflow: 'auto' }}>
           {loadingChain ? (
-            <Box display="flex" justifyContent="center" p={4}><CircularProgress sx={{ color: COLORS.accent }} /></Box>
+            <Box sx={{ display: 'flex', justifyContent: 'center', p: 4 }}><CircularProgress sx={{ color: COLORS.accent }} /></Box>
           ) : !chain ? (
             <Typography color="text.secondary" sx={{ p: 2 }}>No chain data.</Typography>
           ) : (
@@ -141,14 +141,14 @@ const Options = () => {
                   const selCall = selected?.type === 'call' && selected?.strike === row.strike;
                   const selPut = selected?.type === 'put' && selected?.strike === row.strike;
                   return (
-                    <tr key={row.strike} style={{ borderBottom: `1px solid ${COLORS.border}`, background: atm ? 'rgba(139,92,246,0.06)' : 'transparent' }}>
-                      <td style={{ ...cell, cursor: 'pointer', fontWeight: 700, background: selCall ? 'rgba(34,197,94,0.15)' : 'transparent' }}
+                    <tr key={row.strike} style={{ borderBottom: `1px solid ${COLORS.border}`, background: atm ? 'rgba(245,158,11,0.06)' : 'transparent' }}>
+                      <td style={{ ...cell, cursor: 'pointer', fontWeight: 700, background: selCall ? 'rgba(59,130,246,0.15)' : 'transparent' }}
                           onClick={() => selectContract('call', row.strike)}>
                         ₹{row.call.price}
                       </td>
                       <td style={{ ...cell, color: COLORS.textDim }}>{row.call.delta}</td>
                       <td style={{ ...cell, textAlign: 'center', fontWeight: 800 }}>
-                        {row.strike}{atm && <Chip label="ATM" size="small" sx={{ ml: 0.5, height: 16, fontSize: '0.6rem', bgcolor: 'rgba(139,92,246,0.2)', color: '#8b5cf6' }} />}
+                        {row.strike}{atm && <Chip label="ATM" size="small" sx={{ ml: 0.5, height: 16, fontSize: '0.6rem', bgcolor: COLORS.warnDim, color: COLORS.warn }} />}
                       </td>
                       <td style={{ ...cell, color: COLORS.textDim }}>{row.put.delta}</td>
                       <td style={{ ...cell, cursor: 'pointer', fontWeight: 700, background: selPut ? 'rgba(239,68,68,0.15)' : 'transparent' }}
@@ -174,14 +174,14 @@ const Options = () => {
                 {symbol} {selected.type.toUpperCase()} · K ₹{selected.strike}
               </Typography>
               {!pricing ? (
-                <Box display="flex" justifyContent="center" p={2}><CircularProgress size={22} sx={{ color: COLORS.accent }} /></Box>
+                <Box sx={{ display: 'flex', justifyContent: 'center', p: 2 }}><CircularProgress size={22} sx={{ color: COLORS.accent }} /></Box>
               ) : (
                 <>
                   {/* 3-method comparison */}
                   <Box sx={{ my: 1.5, p: 1.5, borderRadius: 2, bgcolor: COLORS.bg, border: `1px solid ${COLORS.border}` }}>
                     <Typography variant="caption" sx={{ color: COLORS.textDim, fontWeight: 700 }}>PREMIUM (3 methods agree)</Typography>
                     {[['Black-Scholes', pricing.blackScholes], ['Binomial Tree', pricing.binomialTree], ['Monte Carlo', pricing.monteCarlo?.price]].map(([k, v]) => (
-                      <Box key={k} display="flex" justifyContent="space-between">
+                      <Box sx={{ display: 'flex', justifyContent: 'space-between' }} key={k}>
                         <Typography variant="body2" sx={{ color: COLORS.textDim }}>{k}</Typography>
                         <Typography variant="body2" fontWeight={800}>₹{v}</Typography>
                       </Box>
@@ -198,18 +198,21 @@ const Options = () => {
                   <PayoffChart optionType={selected.type.toUpperCase()} strike={selected.strike}
                     premium={pricing.blackScholes} spot={chain.spot} />
                   {/* Buy */}
-                  <Box display="flex" gap={1} alignItems="center" sx={{ mt: 1.5 }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 1.5 }}>
                     <TextField type="number" size="small" label="Qty" value={qty}
-                      onChange={e => setQty(Math.max(1, Number(e.target.value)))} sx={{ width: 90 }} inputProps={{ min: 1 }} />
+                      onChange={e => setQty(Math.max(1, Number(e.target.value)))} sx={{ width: 90 }} slotProps={{ htmlInput: { min: 1 } }} />
                     <Typography variant="body2" sx={{ color: COLORS.textDim }}>
                       Cost ≈ ₹{(pricing.blackScholes * qty).toFixed(2)}
                     </Typography>
                   </Box>
-                  <Button fullWidth variant="contained" onClick={buy}
-                    sx={{ mt: 1.5, py: 1.2, fontWeight: 800,
-                      bgcolor: selected.type === 'call' ? COLORS.up : COLORS.down,
-                      color: selected.type === 'call' ? '#04210f' : '#fff',
-                      '&:hover': { bgcolor: selected.type === 'call' ? '#16a34a' : '#dc2626' } }}>
+                  {/* A call is a long position and a put a short one, so each takes the
+                      matching directional variant rather than a generic command button. */}
+                  <Button
+                    fullWidth
+                    variant={selected.type === 'call' ? 'buy' : 'sell'}
+                    onClick={buy}
+                    sx={{ mt: 1.5, py: 1.1 }}
+                  >
                     BUY {selected.type.toUpperCase()}
                   </Button>
                 </>
@@ -276,8 +279,8 @@ const Options = () => {
             borderRadius: 2,
             fontWeight: 700,
             color: '#ffffff',
-            bgcolor: snackbar.severity === 'error' ? '#dc2626'
-              : snackbar.severity === 'warning' ? '#d97706' : '#16a34a',
+            bgcolor: snackbar.severity === 'error' ? COLORS.down
+              : snackbar.severity === 'warning' ? COLORS.warn : COLORS.up,
             boxShadow: '0 10px 36px rgba(0,0,0,0.55)',
             '& .MuiAlert-action': { color: '#ffffff' },
           }}
