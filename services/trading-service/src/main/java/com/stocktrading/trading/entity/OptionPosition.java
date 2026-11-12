@@ -14,7 +14,8 @@ import java.time.LocalDateTime;
  * quantity = number of contracts (1 contract = 1 unit here, kept simple).
  */
 @Entity
-@Table(name = "option_positions")
+@Table(name = "option_positions",
+       indexes = @Index(name = "idx_option_user", columnList = "user_email"))
 @Data
 @NoArgsConstructor
 @AllArgsConstructor

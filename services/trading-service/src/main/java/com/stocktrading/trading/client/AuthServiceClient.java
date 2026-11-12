@@ -96,7 +96,7 @@ public class AuthServiceClient {
      * message embeds the internal service URL and the user's email.
      */
     private static RuntimeException walletUnavailable() {
-        return new RuntimeException("Wallet service unavailable — please try again");
+        return new RuntimeException("Wallet service unavailable, please try again");
     }
 
     @SuppressWarnings("unchecked")

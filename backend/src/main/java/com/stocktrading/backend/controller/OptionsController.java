@@ -51,6 +51,27 @@ public class OptionsController {
         }
     }
 
+    /**
+     * Premiums for many contracts in one request.
+     *
+     * <p>The Trading service renders a live premium for every open position. Pricing
+     * them one at a time cost an HTTP round trip per position in each direction; this
+     * collapses that to one. Internal-facing, same as /quote.
+     */
+    @PostMapping("/quote-batch")
+    public ResponseEntity<?> quoteBatch(@RequestBody Map<String, Object> body) {
+        try {
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_JSON);
+            ResponseEntity<Map> resp = restTemplate.postForEntity(
+                    pythonUrl + "/options/quote-batch", new HttpEntity<>(body, headers), Map.class);
+            return ResponseEntity.ok(resp.getBody());
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.BAD_GATEWAY)
+                    .body(Map.of("error", "Options service unavailable"));
+        }
+    }
+
     /** Price one option every way (Black-Scholes + Binomial + Monte Carlo) + Greeks. */
     @PostMapping("/price")
     public ResponseEntity<?> price(@RequestBody Map<String, Object> body) {

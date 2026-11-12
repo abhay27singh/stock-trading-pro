@@ -35,7 +35,7 @@ public class GlobalExceptionHandler {
         log.warn("Constraint conflict on {} {} [{}]: {}", req.getMethod(), req.getRequestURI(),
                 MDC.get("requestId"), ex.getMessage());
         return ResponseEntity.status(HttpStatus.CONFLICT)
-                .body("Another update happened at the same time — please retry");
+                .body("Another update happened at the same time, please retry");
     }
 
     @ExceptionHandler(Exception.class)
@@ -43,6 +43,6 @@ public class GlobalExceptionHandler {
         log.error("Unhandled exception on {} {} [{}]", req.getMethod(), req.getRequestURI(),
                 MDC.get("requestId"), ex);
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body("Internal error — see server logs (requestId " + MDC.get("requestId") + ")");
+                .body("Internal error: see server logs (requestId " + MDC.get("requestId") + ")");
     }
 }

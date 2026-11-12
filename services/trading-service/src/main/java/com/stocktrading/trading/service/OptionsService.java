@@ -73,13 +73,29 @@ public class OptionsService {
 
     /** Positions enriched with the CURRENT premium and live P&L. */
     public List<Map<String, Object>> positions(String email) {
+        List<OptionPosition> positions = repository.findByUserEmail(email);
+        if (positions.isEmpty()) return List.of();
+
+        // One request for every position's premium. Pricing them individually made this
+        // endpoint cost an HTTP round trip per position, so a user with ten positions
+        // paid ten sequential calls just to render the list.
+        List<MarketDataClient.ContractKey> contracts = new ArrayList<>(positions.size());
+        for (OptionPosition p : positions) {
+            contracts.add(new MarketDataClient.ContractKey(
+                    p.getSymbol(), p.getStrike().doubleValue(), remainingDays(p),
+                    p.getOptionType().name().toLowerCase()));
+        }
+        List<BigDecimal> premiums = marketDataClient.getOptionPremiums(contracts);
+
         List<Map<String, Object>> out = new ArrayList<>();
-        for (OptionPosition p : repository.findByUserEmail(email)) {
-            int remaining = remainingDays(p);
-            BigDecimal current = marketDataClient.getOptionPremium(
-                    p.getSymbol(), p.getStrike().doubleValue(), remaining,
-                    p.getOptionType().name().toLowerCase());
-            if (current == null) current = p.getPremiumPaid();
+        for (int i = 0; i < positions.size(); i++) {
+            OptionPosition p = positions.get(i);
+            int remaining = contracts.get(i).days();
+            BigDecimal current = premiums.get(i);
+            // Unpriceable contract: fall back to what was paid so the row still renders,
+            // and flag it so the UI is not showing a stale number as if it were live.
+            boolean priced = current != null;
+            if (!priced) current = p.getPremiumPaid();
 
             BigDecimal qty = BigDecimal.valueOf(p.getQuantity());
             BigDecimal invested = p.getPremiumPaid().multiply(qty);
@@ -99,6 +115,7 @@ public class OptionsService {
             m.put("pnl", pnl);
             m.put("expiryDate", p.getExpiryDate());
             m.put("daysToExpiry", remaining);
+            m.put("pricedLive", priced);
             out.add(m);
         }
         return out;
@@ -121,7 +138,7 @@ public class OptionsService {
         // null means the pricing call FAILED (timeout, service down) — not that the option
         // is worthless. Defaulting to zero here would delete the position and skip the
         // payout while still returning 200. Fail the request instead so nothing is lost.
-        if (current == null) throw new RuntimeException("Could not price this option right now — try again");
+        if (current == null) throw new RuntimeException("Could not price this option right now, please try again");
 
         BigDecimal proceeds = current.multiply(BigDecimal.valueOf(p.getQuantity()));
         BigDecimal pnl = proceeds.subtract(p.getPremiumPaid().multiply(BigDecimal.valueOf(p.getQuantity())));

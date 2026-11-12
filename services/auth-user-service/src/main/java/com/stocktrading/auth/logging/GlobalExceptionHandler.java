@@ -42,6 +42,6 @@ public class GlobalExceptionHandler {
         log.error("Unhandled exception on {} {} [{}]", req.getMethod(), req.getRequestURI(),
                 MDC.get("requestId"), ex);
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body("Internal error — see server logs (requestId " + MDC.get("requestId") + ")");
+                .body("Internal error: see server logs (requestId " + MDC.get("requestId") + ")");
     }
 }

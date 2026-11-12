@@ -380,6 +380,68 @@ def options_quote(symbol):
     })
 
 
+@app.route('/options/quote-batch', methods=['POST'])
+def options_quote_batch():
+    """Price MANY contracts in one request.
+
+    The Trading service shows a premium for every open position, and pricing them one
+    at a time meant one HTTP round trip per position (and a repeated spot + history
+    lookup for each). Here the spot price and volatility are resolved once per symbol
+    and reused across that symbol's contracts, so N positions cost one request and
+    one yfinance lookup per distinct symbol instead of N of each.
+
+    Body: {"contracts": [{"symbol","strike","days","type"}, ...]}
+    Returns results in the SAME ORDER as the request, with null premium for any
+    contract whose symbol could not be priced, so the caller can match by index.
+    """
+    data = request.get_json(silent=True) or {}
+    contracts = data.get('contracts')
+    if not isinstance(contracts, list):
+        return jsonify({"error": "contracts (array) is required"}), 400
+    if len(contracts) > 200:
+        return jsonify({"error": "too many contracts (max 200)"}), 400
+
+    per_symbol = {}   # symbol -> (spot, sigma) or None when unpriceable
+
+    def resolve(symbol):
+        if symbol not in per_symbol:
+            quote = market_data.get_quote(symbol)
+            if quote is None:
+                per_symbol[symbol] = None
+            else:
+                hist = market_data.get_history(symbol, period="3mo", interval="1d")
+                closes = [c['close'] for c in hist] if hist else []
+                per_symbol[symbol] = (quote['currentPrice'],
+                                      options_pricing.historical_volatility(closes))
+        return per_symbol[symbol]
+
+    results = []
+    for c in contracts:
+        try:
+            symbol = str(c['symbol'])
+            strike = float(c['strike'])
+            days = float(c.get('days', 30))
+            opt_type = str(c.get('type', 'call')).lower()
+        except (KeyError, TypeError, ValueError):
+            results.append({"premium": None, "error": "invalid contract"})
+            continue
+
+        resolved = resolve(symbol)
+        if resolved is None:
+            results.append({"premium": None, "error": f"No data for {symbol}"})
+            continue
+
+        spot, sigma = resolved
+        premium = options_pricing.black_scholes(
+            spot, strike, days / 365.0, RISK_FREE_RATE, sigma, opt_type)
+        results.append({
+            "symbol": symbol, "strike": strike, "days": days, "type": opt_type,
+            "spot": spot, "volatility": sigma, "premium": premium,
+        })
+
+    return jsonify({"results": results})
+
+
 @app.route('/health', methods=['GET'])
 def health():
     return jsonify({"status": "running", "service": "Stock Prediction + Market Data + Options API"})

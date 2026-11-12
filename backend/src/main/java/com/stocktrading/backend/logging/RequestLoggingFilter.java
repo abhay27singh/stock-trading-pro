@@ -8,6 +8,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.MDC;
 import org.springframework.core.annotation.Order;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
@@ -31,6 +33,14 @@ public class RequestLoggingFilter extends OncePerRequestFilter {
         String id = req.getHeader("X-Request-Id");
         if (id == null || id.isBlank()) id = UUID.randomUUID().toString().substring(0, 8);
         MDC.put("requestId", id);
+
+        // Tag the line with who made the request, so one user's problem can be traced
+        // across services by grepping their email. Spring Security's chain runs ahead of
+        // this filter (order -100), so the authentication is already resolved here.
+        // Falls back to "anon" for the endpoints that are reachable without a session.
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        String user = (auth != null && auth.isAuthenticated()) ? auth.getName() : null;
+        MDC.put("user", (user == null || "anonymousUser".equals(user)) ? "anon" : user);
 
         long start = System.currentTimeMillis();
         try {
