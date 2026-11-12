@@ -2,7 +2,7 @@
 
 /* Price tick flash — apply .flash-up / .flash-down briefly when a price changes */
 @keyframes flashUp {
-  0%   { background-color: rgba(34, 197, 94, 0.35); }
+  0%   { background-color: rgba(16, 185, 129, 0.35); }
   100% { background-color: transparent; }
 }
 @keyframes flashDown {
@@ -14,20 +14,20 @@
 
 /* Pulsing "LIVE" dot */
 @keyframes pulseDot {
-  0%   { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.6); }
-  70%  { box-shadow: 0 0 0 8px rgba(34, 197, 94, 0); }
-  100% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0); }
+  0%   { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.6); }
+  70%  { box-shadow: 0 0 0 8px rgba(16, 185, 129, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
 }
 .live-dot {
   display: inline-block;
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background: #22c55e;
+  background: #10B981;
   animation: pulseDot 1.8s infinite;
 }
 .live-dot.closed {
-  background: #ef4444;
+  background: #EF4444;
   animation: none;
 }
 
@@ -37,30 +37,24 @@
   100% { background-position: 468px 0; }
 }
 .shimmer {
-  background: linear-gradient(90deg, #111722 25%, #1b2433 50%, #111722 75%);
+  /* Surface tiers from the theme: panel to elevated cell and back. */
+  background: linear-gradient(90deg, #111827 25%, #1E293B 50%, #111827 75%);
   background-size: 936px 100%;
   animation: shimmer 1.4s infinite linear;
-  border-radius: 8px;
+  border-radius: 2px;
 }
 
 /* Soft glow used on accent text / live price */
 .glow-green {
-  text-shadow: 0 0 12px rgba(34, 197, 94, 0.45);
+  text-shadow: 0 0 12px rgba(16, 185, 129, 0.45);
 }
 
-/* Slowly shifting multi-color gradient — used as the auth page background */
-@keyframes gradientShift {
-  0%   { background-position: 0% 50%; }
-  50%  { background-position: 100% 50%; }
-  100% { background-position: 0% 50%; }
-}
+/* Auth page canvas.
+   The Obsidian Terminal system builds depth from flat surfaces and soft static glow
+   rather than motion, so this no longer cycles a gradient on an 18s loop. The blobs
+   below provide the glow; this paints the obsidian ground beneath them. */
 .animated-bg {
-  background: linear-gradient(
-    -45deg,
-    #0a0e17, #0d2818, #0a1f2e, #1a0f2e, #0a0e17
-  );
-  background-size: 400% 400%;
-  animation: gradientShift 18s ease infinite;
+  background: #0B0F17;
 }
 
 /* Floating glow blobs that drift behind the login card */
@@ -76,4 +70,19 @@
   filter: blur(70px);
   opacity: 0.5;
   pointer-events: none;
+}
+
+/* Respect the reader's motion preference. Everything above is decorative: the price
+   flash, the live dot, the drifting background and the loading shimmer all carry their
+   meaning through colour and layout as well, so switching the motion off loses nothing.
+   Animations are reduced to a single instant state rather than removed, so elements
+   still settle at their final appearance. */
+@media (prefers-reduced-motion: reduce) {
+  .flash-up,
+  .flash-down,
+  .live-dot,
+  .shimmer,
+  .blob {
+    animation: none;
+  }
 }

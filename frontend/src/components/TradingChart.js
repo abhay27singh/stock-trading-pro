@@ -1,5 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import { createChart, CandlestickSeries, LineSeries } from 'lightweight-charts';
+import { COLORS, MONO } from '../theme';
 
 /**
  * Aggregates raw {time, price} ticks into OHLC candles.
@@ -49,28 +50,30 @@ const TradingChart = ({ data, height = 420 }) => {
       width: chartContainerRef.current.clientWidth,
       height,
       layout: {
-        background: { color: '#131722' },
-        textColor: '#d1d5db',
-        fontFamily: "'Inter', -apple-system, sans-serif",
+        background: { color: COLORS.surface },
+        textColor: COLORS.textDim,
+        // Axis labels are all figures, so they take the monospace face for the same
+        // reason tables do: digits keep a fixed width and the scale stops twitching.
+        fontFamily: MONO,
       },
       grid: {
-        vertLines: { color: 'rgba(42, 46, 57, 0.6)' },
-        horzLines: { color: 'rgba(42, 46, 57, 0.6)' },
+        vertLines: { color: 'rgba(30, 41, 59, 0.7)' },
+        horzLines: { color: 'rgba(30, 41, 59, 0.7)' },
       },
       crosshair: {
         mode: 0,
-        vertLine: { color: 'rgba(224, 227, 235, 0.3)', style: 0 },
-        horzLine: { color: 'rgba(224, 227, 235, 0.3)', style: 0 },
+        vertLine: { color: 'rgba(148, 163, 184, 0.4)', style: 0 },
+        horzLine: { color: 'rgba(148, 163, 184, 0.4)', style: 0 },
       },
       timeScale: {
         timeVisible: true,
         secondsVisible: false,
-        borderColor: '#2a2e39',
+        borderColor: COLORS.border,
         rightOffset: 5,
         barSpacing: 8,
       },
       rightPriceScale: {
-        borderColor: '#2a2e39',
+        borderColor: COLORS.border,
         scaleMargins: { top: 0.1, bottom: 0.1 },
       },
     });
@@ -108,12 +111,12 @@ const TradingChart = ({ data, height = 420 }) => {
       // Real candles from yfinance — use directly
       if (!candleSeriesRef.current) {
         candleSeriesRef.current = chart.addSeries(CandlestickSeries, {
-          upColor: '#22c55e',
-          downColor: '#ef4444',
-          borderDownColor: '#ef4444',
-          borderUpColor: '#22c55e',
-          wickDownColor: '#ef4444',
-          wickUpColor: '#22c55e',
+          upColor: COLORS.up,
+          downColor: COLORS.down,
+          borderDownColor: COLORS.down,
+          borderUpColor: COLORS.up,
+          wickDownColor: COLORS.down,
+          wickUpColor: COLORS.up,
         });
       }
       const deduped = [];
@@ -129,19 +132,19 @@ const TradingChart = ({ data, height = 420 }) => {
       if (candles.length >= 1) {
         if (!candleSeriesRef.current) {
           candleSeriesRef.current = chart.addSeries(CandlestickSeries, {
-            upColor: '#22c55e',
-            downColor: '#ef4444',
-            borderDownColor: '#ef4444',
-            borderUpColor: '#22c55e',
-            wickDownColor: '#ef4444',
-            wickUpColor: '#22c55e',
+            upColor: COLORS.up,
+            downColor: COLORS.down,
+            borderDownColor: COLORS.down,
+            borderUpColor: COLORS.up,
+            wickDownColor: COLORS.down,
+            wickUpColor: COLORS.up,
           });
         }
         candleSeriesRef.current.setData(candles);
       } else {
         if (!lineSeriesRef.current) {
           lineSeriesRef.current = chart.addSeries(LineSeries, {
-            color: '#22c55e',
+            color: COLORS.up,
             lineWidth: 2,
           });
         }

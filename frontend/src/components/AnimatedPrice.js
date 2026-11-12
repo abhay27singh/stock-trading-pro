@@ -39,8 +39,8 @@ const AnimatedPrice = ({ value, prefix = '₹', decimals = 2, style }) => {
   return (
     <span
       ref={ref}
-      className={flash}
-      style={{ borderRadius: 6, padding: '0 4px', transition: 'background-color .2s', ...style }}
+      className={`num ${flash}`.trim()}
+      style={{ borderRadius: 2, padding: '0 4px', transition: 'background-color .2s', ...style }}
     >
       {prefix}
       {(Number(value) || 0).toLocaleString('en-IN', {
